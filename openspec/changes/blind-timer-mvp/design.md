@@ -1,0 +1,124 @@
+# Design: Blind Timer MVP
+
+## Context
+
+実装コードが存在しないグリーンフィールド。仕様は docs/spec.md で確定済み。
+
+- 3 画面(エディタ / サイネージ / リモコン)を GitHub Pages の静的サイトとして配信
+- 自前サーバーは持たず、Cloudflare Workers(接続 URL 発行・Ably トークン認証)と Ably(pub/sub)のみ利用
+- 設定・状態は IndexedDB に保存し、同一ブラウザ内でエディタ → サイネージへ受け渡す
+- タイマー進行はサイネージが source of truth
+
+## Goals / Non-Goals
+
+**Goals:**
+
+- 実際のトーナメント運営で使える最小構成(MVP)
+- タイマーの正確性(基準時刻差分方式)とリロード復元
+- スマホリモコンからの安定した遠隔操作
+- GitHub Pages への自動デプロイ
+
+**Non-Goals:**
+
+- 演出(レベルアップ・イン・ザ・マネー等)、フォトモード、SaaS 化、課金・認証
+- 複数トーナメントの同時運営、設定のクラウド同期
+- サイネージ → リモコンの双方向完全同期の作り込み(状態表示は最小限)
+- Cloudflare Workers の CI/CD(MVP では wrangler で手動デプロイ)
+
+## Decisions
+
+### D1. リポジトリ構成: 単一リポジトリ、ルートに Vite アプリ + `worker/` ディレクトリ
+
+```text
+.
+├── src/                  # React アプリ(3画面 + 共有ロジック)
+│   ├── pages/
+│   │   ├── editor/
+│   │   ├── signage/
+│   │   └── remote/
+│   ├── domain/           # タイマーロジック・状態機械(React 非依存の純粋 TS)
+│   ├── storage/          # IndexedDB アクセス
+│   ├── realtime/         # Ably 接続・メッセージ型定義
+│   └── main.tsx
+├── worker/               # Cloudflare Worker(独立した package.json + wrangler.jsonc)
+├── docs/spec.md
+└── .github/workflows/deploy.yml
+```
+
+- モノレポツール(pnpm workspaces 等)は導入しない。Worker は小さいため独立ディレクトリで十分
+- 理由: ミニマム構成の方針。共有が必要な型(メッセージ定義)はフロント側 `src/realtime/messages.ts` に置き、Worker は型をほぼ必要としない(チャンネル ID 発行とトークン発行のみ)
+
+### D2. ルーティング: React Router(BrowserRouter)+ 404.html フォールバック
+
+- ルートは `/editor` `/signage` `/remote`。Vite の `base` を `/poker-blind-timer/` に設定
+- GitHub Pages は SPA の深いリンクで 404 を返すため、ビルド時に `index.html` を `404.html` としてコピーして対応
+- 代替案: HashRouter(`/#/editor`)は確実だが、docs/spec.md の URL 形式(パス形式)と一致しないため不採用
+
+### D3. タイマー: 基準時刻差分方式の純粋 TS モジュール + 状態機械
+
+- `domain/` に React 非依存のタイマーエンジンを実装。経過時間は `levelStartedAt`(エポック ms)と現在時刻の差分から算出し、`setInterval` は表示更新のトリガーとしてのみ使用
+- 状態は判別可能ユニオンで表現: `setup | pairing | running | paused | break | finished`
+- 一時停止時は「レベル内の経過時間」を保持し、再開時に新しい基準時刻を設定
+- レベル切り替えは冪等にする(同じレベル遷移を重複実行しない)
+- ブレイクはストラクチャー内の「レベルの一種」として扱い、進行ロジックを単純化する
+- Vitest でタイマーロジックの単体テストを書く(このプロジェクトで最もバグが致命的な箇所)
+
+### D4. 永続化: IndexedDB + `idb` ライブラリ
+
+- 素の IndexedDB API は冗長なため、軽量ラッパー `idb`(~1KB)を採用
+- ストア構成:
+  - `configs`: トーナメント設定(ストラクチャー、店名、タイトル、プライズ、アドオン/リバイ)。複数保存・再利用可能
+  - `session`: 進行中のタイマー状態スナップショット(1 件)。操作履歴(histories)を含む。状態変化時に保存し、サイネージのリロード時に復元
+- 代替案: localStorage は容量・構造化の面で不利、Dexie は MVP には過剰
+
+### D5. ペアリングと認証: Cloudflare Worker が 2 つのエンドポイントを提供
+
+- `POST /session` — サイネージが呼ぶ。暗号学的にランダムなチャンネル ID(128bit, base64url)を生成して返す。サイネージはこれを使いリモコン URL `https://jhonyspicy.github.io/poker-blind-timer/remote?ch=<id>` を組み立て、QR コード表示
+- `GET /token?ch=<id>&role=<signage|remote>` — サイネージ / リモコン双方が Ably SDK の `authUrl` として使用。Ably の API キーは Worker の環境変数(secret)のみに保持し、対象チャンネルに capability を限定した TokenRequest を返す
+- MVP では session の台帳(KV 等)は持たない。チャンネル ID は推測不能なランダム値であることをセキュリティ境界とする
+- 代替案: Ably キーをフロントに埋め込む方式は仕様(トークン認証)に反するため不採用。Workers KV でのセッション管理は MVP では不要
+
+### D6. 同期プロトコル: リモコン → コマンド、サイネージ → 状態スナップショット
+
+1 つの Ably チャンネルで message name を分ける:
+
+- `command`(リモコン → サイネージ): `HISTORY_ADD`(種別 `entry` | `addon` | `bust`、chip は省略時に設定のデフォルト値)/ `HISTORY_UPDATE`(id, chip)/ `HISTORY_DELETE`(id)/ `PAUSE` / `RESUME` / `NEXT_LEVEL` / `PREV_LEVEL` / `TITLE_UPDATE`
+- `state`(サイネージ → リモコン): タイマー状態のスナップショット。操作履歴(histories)と導出統計を含み、状態変化時に publish してリモコン側の表示(残り時間・レベル・人数・履歴一覧)を更新
+- リモコン接続時は `REQUEST_STATE` コマンドで最新状態を要求する
+- コマンドは「増減量」ではなく操作意図を送り、適用結果はサイネージが決定する(source of truth の維持)。各コマンドにはリモコンが生成する一意な `requestId` を付与し、サイネージは処理済み requestId を無視することで、重複・順序入れ替わりが起きても最終状態が破綻しない設計にする。履歴の id はサイネージが採番する
+
+### D7. デプロイ: GitHub Actions → GitHub Pages、Worker は wrangler 手動デプロイ
+
+- `main` への push で Vite ビルド → Pages デプロイ(公式 `actions/deploy-pages` 方式)
+- Worker は `worker/` で `wrangler deploy` を手動実行(MVP では頻繁に変わらないため)
+- Worker の URL はフロントのビルド時環境変数(`VITE_PAIRING_API_URL`)で注入
+
+### D8. UI: CSS Modules、UI フレームワークなし
+
+- サイネージは `vw` / `vh` / `clamp()` ベースの 16:9 フルスクリーンレイアウト。黒基調 + ゴールド/白アクセント(既存デザイン方針を踏襲)
+- リモコンはスマホ縦持ち・片手操作前提。誤タップ防止のため破壊的操作(レベル移動等)はボタンを大きく分離配置
+- Tailwind / MUI 等は導入しない(依存を増やさない方針。画面数が少なく CSS Modules で十分)
+
+### D9. トーナメント統計: カウンタではなくイベント履歴から導出
+
+- session に操作履歴 histories(`{ id, command: 'entry' | 'addon' | 'bust', chip? }` の配列)を保持し、統計はすべて履歴からの純関数で導出する(`domain/` に実装、単体テスト対象):
+  - 総エントリー数 = entry の件数(リバイ / 再エントリーも entry として記録)
+  - 現在のプレイヤー数 = entry の件数 − bust の件数
+  - アドオン数 = addon の件数
+  - 平均チップ = entry と addon の chip 合計 ÷ 現在のプレイヤー数
+- entry / addon の chip は記録時点の値を保持する(デフォルトは設定のスターティングスタック / アドオンチップ量、リモコンから上書き可)。設定を後から変えても過去の履歴には波及しない
+- 誤操作の訂正は id 指定の `HISTORY_UPDATE` / `HISTORY_DELETE` で行う。リモコンは state スナップショットの履歴一覧を表示して修正対象を選択する
+- 理由: カウンタ方式では平均チップの算出と誤操作の訂正ができない。履歴があれば統計は常に再計算可能で、コマンドの重複適用にも強い
+
+## Risks / Trade-offs
+
+- [Ably 無料枠の制限・接続断] → コマンド適用はサイネージ側で冪等にし、切断中もサイネージ単体でタイマーは正常進行する。再接続時に `REQUEST_STATE` で復帰
+- [チャンネル ID が漏れると第三者が操作可能] → 128bit ランダム値 + トークンの capability 制限。トーナメントごとに新しい ID を発行。MVP ではこれを許容し、失効機構は将来課題
+- [GitHub Pages の 404 フォールバックによる SEO/挙動の癖] → アプリ用途では実害なし。404.html コピーで対応
+- [PC のスリープ・タブ非アクティブでの描画停止] → 差分方式のため復帰時に正しい残り時間へ即座に追いつく。サイネージ利用時は OS 側でスリープ無効を推奨(README に記載)
+- [Worker 手動デプロイによる環境差異] → MVP では許容。エンドポイントが 2 つと小さく、変更頻度が低い
+
+## Open Questions
+
+- QR コードライブラリ: `qrcode.react` を第一候補とする(React コンポーネントで SVG 出力、依存小)。実装時に最終確定
+- プライズ一覧の表示フォーマット(順位数の上限・スクロール要否)は実装時にデザインを見て判断

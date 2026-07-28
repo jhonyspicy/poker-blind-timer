@@ -1,0 +1,37 @@
+# Blind Timer MVP
+
+## Why
+
+ポーカートーナメント運営で繰り返し使えるブラインドタイマーがまだ存在しない(リポジトリは設計段階で実装コードがゼロ)。docs/spec.md で仕様が確定したため、実際のトーナメント運営で使える MVP を最短で構築・リリースする。
+
+## What Changes
+
+- React + Vite + TypeScript のプロジェクト基盤を新規作成し、GitHub Pages(`https://jhonyspicy.github.io/poker-blind-timer/`)へのデプロイパイプラインを整備する
+- 3 つの画面を追加する:
+  - **エディタ**(`/editor`): ストラクチャー(SB/BB/Ante/継続時間/ブレイク位置/レイトレジ締切)、店名、トーナメントタイトル、プライズ、スターティングスタック、アドオン/リバイ設定(チップ量含む)を入力し IndexedDB に保存
+  - **サイネージ**(`/signage`): 保存した設定を読み込み、タイマー・ブラインド情報・統計(エントリー数/生き残り数/アドオン数/平均チップ。操作履歴から導出)を大画面フルスクリーン表示。リモコン用 URL を QR コードで表示
+  - **リモコン**(`/remote`): スマホから一時停止/再開、レベル移動、エントリー/バスト/アドオンの記録と履歴の修正・削除、タイトル変更を操作
+- Cloudflare Workers による接続用 URL 発行と Ably トークン認証エンドポイントを追加する
+- Ably(pub/sub)によるリモコン → サイネージのリアルタイム同期を実装する
+- タイマー状態の IndexedDB 保存によるリロード復元を実装する
+
+## Capabilities
+
+### New Capabilities
+
+- `tournament-config`: ストラクチャー・店名・タイトル・プライズ・スターティングスタック・アドオン/リバイ設定の入力、検証、IndexedDB への保存・読み込み・再利用(エディタ画面)
+- `signage-display`: タイマー本体。設定に基づくレベル進行、残り時間・ブラインド・統計(操作履歴から導出)の大画面表示、状態の永続化とリロード復元(サイネージ画面)
+- `remote-control`: スマホからのタイマー操作・履歴記録/修正 UI と操作メッセージの publish(リモコン画面)
+- `realtime-pairing`: Cloudflare Workers による接続 URL 発行・Ably トークン認証、QR コードによるペアリング、Ably チャンネルでのメッセージ同期
+
+### Modified Capabilities
+
+(なし — 既存の spec はまだ存在しない)
+
+## Impact
+
+- 新規コード: フロントエンド一式(React + Vite + TypeScript)、Cloudflare Workers(別途デプロイ)
+- 新規依存: react, react-dom, react-router, ably, QR コード生成ライブラリ, IndexedDB ラッパー(選定は design.md)
+- CI/CD: GitHub Actions による GitHub Pages デプロイを新設
+- 外部サービス: Ably アカウント(API キーは Workers 側のみに保持)、Cloudflare アカウント
+- 既存コードへの影響: なし(実装コードが存在しないため)。README.md の技術スタック・セットアップ・開発用コマンドのセクションを実装後に更新する

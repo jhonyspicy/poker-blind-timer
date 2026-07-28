@@ -1,0 +1,8 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "poker-blind-timer-pairing",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-01",
+  // Ably の API キーは secret として設定する:
+  //   wrangler secret put ABLY_API_KEY
+}

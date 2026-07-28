@@ -1,0 +1,174 @@
+import type { StructureItem, TimerState } from './types'
+
+const MS_PER_MINUTE = 60_000
+
+export function durationMs(item: StructureItem): number {
+  return item.durationMinutes * MS_PER_MINUTE
+}
+
+export function startTimer(now: number): TimerState {
+  return { status: 'running', levelIndex: 0, levelStartedAt: now }
+}
+
+/**
+ * 実時間の経過を状態へ反映する。残り時間が 0 を過ぎたレベルを順に消化し、
+ * 必要なら finished へ遷移する。純関数なので何度呼んでも同じ結果になり、
+ * タブ非アクティブ後の復帰でも正しいレベル・残り時間に追いつく。
+ */
+export function resolveTimer(
+  state: TimerState,
+  structure: StructureItem[],
+  now: number,
+): TimerState {
+  if (state.status !== 'running') return state
+
+  let { levelIndex, levelStartedAt } = state
+  for (;;) {
+    const current = structure[levelIndex]
+    if (!current) return { status: 'finished' }
+    const duration = durationMs(current)
+    if (now - levelStartedAt < duration) {
+      // 変化が無ければ同一参照を返し、呼び出し側の不要な再レンダー・再保存を防ぐ
+      return levelIndex === state.levelIndex
+        ? state
+        : { status: 'running', levelIndex, levelStartedAt }
+    }
+    if (levelIndex >= structure.length - 1) {
+      return { status: 'finished' }
+    }
+    // 経過分を繰り越して次レベルの開始時刻を実時間に合わせる
+    levelIndex += 1
+    levelStartedAt += duration
+  }
+}
+
+/** 現在レベルの残り時間(ms)。finished は 0 */
+export function remainingMs(state: TimerState, structure: StructureItem[], now: number): number {
+  const resolved = resolveTimer(state, structure, now)
+  if (resolved.status === 'finished') return 0
+  const duration = durationMs(structure[resolved.levelIndex])
+  if (resolved.status === 'paused') {
+    return Math.max(0, duration - resolved.elapsedInLevelMs)
+  }
+  return Math.max(0, duration - (now - resolved.levelStartedAt))
+}
+
+export function pauseTimer(state: TimerState, structure: StructureItem[], now: number): TimerState {
+  const resolved = resolveTimer(state, structure, now)
+  if (resolved.status !== 'running') return resolved
+  return {
+    status: 'paused',
+    levelIndex: resolved.levelIndex,
+    elapsedInLevelMs: now - resolved.levelStartedAt,
+  }
+}
+
+export function resumeTimer(state: TimerState, now: number): TimerState {
+  if (state.status !== 'paused') return state
+  return {
+    status: 'running',
+    levelIndex: state.levelIndex,
+    levelStartedAt: now - state.elapsedInLevelMs,
+  }
+}
+
+/** 次のレベルへ手動で進む。一時停止中は一時停止のまま次レベルの先頭に移る */
+export function nextLevel(state: TimerState, structure: StructureItem[], now: number): TimerState {
+  const resolved = resolveTimer(state, structure, now)
+  if (resolved.status === 'finished') return resolved
+  const nextIndex = resolved.levelIndex + 1
+  if (nextIndex >= structure.length) return { status: 'finished' }
+  return resolved.status === 'paused'
+    ? { status: 'paused', levelIndex: nextIndex, elapsedInLevelMs: 0 }
+    : { status: 'running', levelIndex: nextIndex, levelStartedAt: now }
+}
+
+/** 前のレベルへ手動で戻る。finished からは最終レベルの先頭に戻る */
+export function prevLevel(state: TimerState, structure: StructureItem[], now: number): TimerState {
+  if (structure.length === 0) return { status: 'finished' }
+  const resolved = resolveTimer(state, structure, now)
+  if (resolved.status === 'finished') {
+    return { status: 'running', levelIndex: structure.length - 1, levelStartedAt: now }
+  }
+  const prevIndex = Math.max(0, resolved.levelIndex - 1)
+  return resolved.status === 'paused'
+    ? { status: 'paused', levelIndex: prevIndex, elapsedInLevelMs: 0 }
+    : { status: 'running', levelIndex: prevIndex, levelStartedAt: now }
+}
+
+/** 現在ストラクチャー上のブレイク中かどうか */
+export function isOnBreak(state: TimerState, structure: StructureItem[], now: number): boolean {
+  const resolved = resolveTimer(state, structure, now)
+  if (resolved.status === 'finished') return false
+  return structure[resolved.levelIndex]?.kind === 'break'
+}
+
+/** 現在のブラインドレベル番号(1 始まり、ブレイクは数えない)。finished は null */
+export function currentBlindLevelNumber(
+  state: TimerState,
+  structure: StructureItem[],
+  now: number,
+): number | null {
+  const resolved = resolveTimer(state, structure, now)
+  if (resolved.status === 'finished') return null
+  let count = 0
+  for (let i = 0; i <= resolved.levelIndex; i++) {
+    if (structure[i]?.kind === 'blind') count += 1
+  }
+  return structure[resolved.levelIndex]?.kind === 'blind' ? count : null
+}
+
+/** 現在位置から見て次のブラインドレベル。無ければ null */
+export function nextBlindLevel(
+  state: TimerState,
+  structure: StructureItem[],
+  now: number,
+): StructureItem | null {
+  const resolved = resolveTimer(state, structure, now)
+  if (resolved.status === 'finished') return null
+  for (let i = resolved.levelIndex + 1; i < structure.length; i++) {
+    if (structure[i].kind === 'blind') return structure[i]
+  }
+  return null
+}
+
+/**
+ * 次のブレイク開始までの残り時間(ms)。現在ブレイク中、または以降にブレイクが
+ * 無い場合は null
+ */
+export function msUntilNextBreak(
+  state: TimerState,
+  structure: StructureItem[],
+  now: number,
+): number | null {
+  const resolved = resolveTimer(state, structure, now)
+  if (resolved.status === 'finished') return null
+  if (structure[resolved.levelIndex]?.kind === 'break') return null
+  let total = remainingMs(resolved, structure, now)
+  for (let i = resolved.levelIndex + 1; i < structure.length; i++) {
+    if (structure[i].kind === 'break') return total
+    total += durationMs(structure[i])
+  }
+  return null
+}
+
+export type LateRegStatus =
+  { kind: 'none' } | { kind: 'open'; msUntilClose: number } | { kind: 'closed' }
+
+/** レイトレジストレーション締め切りまでの残り時間。締め切り項目の終了時点でクローズ */
+export function lateRegStatus(
+  state: TimerState,
+  structure: StructureItem[],
+  lateRegEndIndex: number | null,
+  now: number,
+): LateRegStatus {
+  if (lateRegEndIndex === null) return { kind: 'none' }
+  const resolved = resolveTimer(state, structure, now)
+  if (resolved.status === 'finished') return { kind: 'closed' }
+  if (resolved.levelIndex > lateRegEndIndex) return { kind: 'closed' }
+  let total = remainingMs(resolved, structure, now)
+  for (let i = resolved.levelIndex + 1; i <= lateRegEndIndex && i < structure.length; i++) {
+    total += durationMs(structure[i])
+  }
+  return { kind: 'open', msUntilClose: total }
+}

@@ -1,0 +1,43 @@
+# realtime-pairing: 接続 URL 発行・トークン認証・ペアリング
+
+## ADDED Requirements
+
+### Requirement: 接続用チャンネル ID の発行
+Cloudflare Worker は、サイネージからの要求(`POST /session`)に対し、暗号学的に推測困難なランダムなチャンネル識別子(128bit 以上)を発行しなければならない(MUST)。
+
+#### Scenario: チャンネル ID の発行
+- **WHEN** サイネージが `POST /session` を呼び出す
+- **THEN** 一意で推測困難なチャンネル識別子が返される
+
+### Requirement: Ably トークン認証
+Cloudflare Worker は、トークンエンドポイント(`GET /token?ch=<id>`)で、指定チャンネルに capability を限定した Ably の TokenRequest を返さなければならない(MUST)。Ably の API キーは Worker の環境変数(secret)のみに保持し、フロントエンドのコード・ビルド成果物に含めてはならない(MUST NOT)。
+
+#### Scenario: トークンの取得
+- **WHEN** サイネージまたはリモコンがチャンネル識別子つきでトークンエンドポイントを呼び出す
+- **THEN** そのチャンネルに限定された TokenRequest が返され、Ably へ接続できる
+
+#### Scenario: API キーの秘匿
+- **WHEN** フロントエンドのビルド成果物を検査する
+- **THEN** Ably の API キーは含まれていない
+
+### Requirement: QR コードによるペアリング
+サイネージは、発行されたチャンネル識別子を含むリモコン用 URL(`/remote?ch=<id>`)を生成し、QR コードとして画面に表示しなければならない(MUST)。QR コードはタイマー表示中にも再表示できなければならない(MUST)。
+
+#### Scenario: QR コードの表示
+- **WHEN** サイネージでリモコン接続を開始する
+- **THEN** リモコン用 URL の QR コードが表示され、スマホで読み取れる
+
+#### Scenario: タイマー表示中の再表示
+- **WHEN** タイマー表示中に QR コードの再表示を操作する
+- **THEN** 同じリモコン用 URL の QR コードが再び表示される
+
+### Requirement: リアルタイムメッセージ同期
+サイネージとリモコンは同一の Ably チャンネルに接続し、リモコンの操作コマンドがサイネージへ、サイネージの状態スナップショットがリモコンへ配信されなければならない(MUST)。通信が切断されてもサイネージのタイマー進行は継続し(MUST)、再接続後に同期が回復しなければならない(MUST)。
+
+#### Scenario: コマンドの配信
+- **WHEN** リモコンがコマンドを publish する
+- **THEN** サイネージが subscribe でそのコマンドを受信する
+
+#### Scenario: 切断中のタイマー継続
+- **WHEN** サイネージのネットワークが一時的に切断される
+- **THEN** タイマーはローカルで正しく進行し続け、再接続後にリモコンとの同期が回復する
