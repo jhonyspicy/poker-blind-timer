@@ -13,6 +13,9 @@ npm-debug.log*
 .env.local
 .env.*.local
 
+# wrangler ローカル開発用シークレット(Ably API キー等)
+worker/.dev.vars
+
 # editor / OS
 .DS_Store
 .idea/

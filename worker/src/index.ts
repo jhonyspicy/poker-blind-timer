@@ -80,12 +80,13 @@ async function createTokenRequest(
   const capability = JSON.stringify({ [channelName(channelId)]: ['publish', 'subscribe'] })
   const timestamp = Date.now()
   const nonce = base64urlEncode(crypto.getRandomValues(new Uint8Array(12)))
-  const clientId = ''
 
-  const signText = `${keyName}\n${TOKEN_TTL_MS}\n${capability}\n${clientId}\n${timestamp}\n${nonce}\n`
+  // clientId は使わない。署名テキスト上は空文字として扱い、TokenRequest には含めない
+  // (空文字の clientId を含めると Ably が 40012 で拒否する)
+  const signText = `${keyName}\n${TOKEN_TTL_MS}\n${capability}\n\n${timestamp}\n${nonce}\n`
   const mac = await hmacSha256Base64(keySecret, signText)
 
-  return { keyName, ttl: TOKEN_TTL_MS, capability, clientId, timestamp, nonce, mac }
+  return { keyName, ttl: TOKEN_TTL_MS, capability, timestamp, nonce, mac }
 }
 
 export default {

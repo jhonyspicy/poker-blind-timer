@@ -8,7 +8,7 @@
 - [x] 1.1 Vite + React + TypeScript プロジェクトを作成(strict、`base: '/poker-blind-timer/'`、ESLint + Prettier)
 - [x] 1.2 React Router を導入し `/editor` `/signage` `/remote` の 3 ルートとプレースホルダーページを作成(404.html フォールバック含む)
 - [x] 1.3 Vitest をセットアップし、サンプルテストが通ることを確認
-- [ ] 1.4 GitHub Actions で GitHub Pages への自動デプロイを構築し、トップページを含む 4 つの URL が実際に開けることを確認
+- [x] 1.4 GitHub Actions で GitHub Pages への自動デプロイを構築し、トップページを含む 4 つの URL が実際に開けることを確認
 - [x] 1.5 README.md の技術スタック・セットアップ・開発用コマンドを更新
 
 ## 2. ドメインモデルとタイマーエンジン
