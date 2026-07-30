@@ -16,6 +16,9 @@ npm-debug.log*
 # wrangler ローカル開発用シークレット(Ably API キー等)
 worker/.dev.vars
 
+# wrangler dev の一時ファイル・ローカル状態
+worker/.wrangler/
+
 # editor / OS
 .DS_Store
 .idea/
