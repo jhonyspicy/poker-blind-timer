@@ -20,3 +20,6 @@ npm-debug.log*
 
 # misc (existing)
 /myfile.*
+/myfile.json
+/myfile2.json
+/.claude/

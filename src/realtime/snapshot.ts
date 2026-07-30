@@ -22,8 +22,5 @@ export function buildSnapshot(
     title: session.titleOverride ?? config.title,
     histories: session.histories,
     stats: deriveStats(session.histories),
-    startingStack: config.startingStack,
-    addonEnabled: config.addonEnabled,
-    addonChip: config.addonChip,
   }
 }

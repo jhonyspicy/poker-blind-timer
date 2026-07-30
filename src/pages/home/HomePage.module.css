@@ -1,0 +1,270 @@
+/* トップページ(タイマー設定一覧)。デザイン: blind-timer-admin-v2.dc.html
+   トークンは src/index.css の :root で共通定義 */
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 11.2px;
+  padding: 16.8px 48px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.brand {
+  font-size: 20px;
+  font-weight: 500;
+  margin-right: auto;
+}
+
+.navStore {
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.content {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 44.8px 48px 96px;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.headings {
+  display: flex;
+  flex-direction: column;
+  gap: 5.6px;
+}
+
+.storeName {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+}
+
+.storeNameRow {
+  display: flex;
+  align-items: center;
+  gap: 11.2px;
+}
+
+.storeNameInput {
+  width: 320px;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--text);
+  caret-color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+
+.storeNameInput:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.subtitle {
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 1.2;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 5.6px 10px;
+  border-radius: 8px;
+}
+
+.btnPrimary {
+  composes: btn;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.btnPrimary:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.btnPrimary:active {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.btnSecondary {
+  composes: btn;
+  border-color: var(--divider);
+}
+
+.btnSecondary:hover {
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.btnSecondary:active {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+.btnGhost {
+  composes: btn;
+  color: var(--accent);
+  padding-inline: 2.8px;
+}
+
+.btnGhost:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.btnGhost:active {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.createButton {
+  font-size: 17px;
+  padding: 11.2px 22.4px;
+}
+
+.plusIcon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.startButton {
+  padding: 8.4px 19.6px;
+}
+
+.playIcon {
+  font-size: 11px;
+}
+
+.deleteButton {
+  color: var(--neutral-400);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 11.2px;
+}
+
+.timerCard {
+  display: flex;
+  align-items: center;
+  gap: 16.8px;
+  padding: 19.6px 22.4px;
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.accentBar {
+  width: 3px;
+  align-self: stretch;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.timerName {
+  flex: 1;
+  min-width: 0;
+  font-size: 20px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8.4px;
+  flex-shrink: 0;
+}
+
+.empty {
+  padding: 44px 0;
+  text-align: center;
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.dialogBackdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 11.2px;
+  background: color-mix(in srgb, var(--neutral-900) 50%, transparent);
+}
+
+.dialog {
+  width: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 8.4px;
+  padding: 11.2px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.dialogTitle {
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.dialogBody {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 5.6px;
+  margin-top: 5.6px;
+}
+
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8.4px;
+  padding: 8.4px 16.8px;
+  font-size: 14px;
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.toastIcon {
+  color: var(--accent);
+}

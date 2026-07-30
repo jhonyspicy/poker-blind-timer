@@ -1,163 +1,295 @@
+/* エディタ(タイマー設定の作成・編集)。トップページと同じデザイン言語
+   トークンは src/index.css の :root で共通定義 */
+
 .page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 11.2px;
+  padding: 16.8px 48px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.brand {
+  font-size: 20px;
+  font-weight: 500;
+  margin-right: auto;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.brand:hover {
+  color: var(--accent);
+}
+
+.navLabel {
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.content {
+  width: 100%;
   max-width: 960px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 44.8px 48px 96px;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.headings {
+  display: flex;
+  flex-direction: column;
+  gap: 5.6px;
 }
 
 .title {
-  color: #d9b45b;
-  margin: 0 0 1rem;
+  margin: 0;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8.4px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 1.2;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 5.6px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.btnPrimary {
+  composes: btn;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.btnPrimary:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.btnPrimary:active {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.btnSecondary {
+  composes: btn;
+  border-color: var(--divider);
+}
+
+.btnSecondary:hover {
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.btnSecondary:active {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+.btnGhost {
+  composes: btn;
+  color: var(--accent);
+  padding-inline: 2.8px;
+}
+
+.btnGhost:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.btnGhost:active {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.saveButton {
+  font-size: 17px;
+  padding: 11.2px 22.4px;
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16.8px;
 }
 
 .section {
-  background: #17171b;
-  border: 1px solid #2a2a30;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22.4px;
   border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1.25rem;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
-.section h2 {
-  font-size: 1.1rem;
-  margin: 0 0 0.75rem;
-  color: #d9b45b;
+.sectionTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 0.75rem;
+  gap: 5.6px;
 }
 
 .field label {
-  font-size: 0.85rem;
-  color: #aaa;
+  font-size: 13px;
+  color: var(--muted);
 }
 
-.field input[type='text'],
-.field input[type='number'],
-.page select {
-  background: #0d0d0f;
-  color: #f5f5f5;
-  border: 1px solid #3a3a42;
-  border-radius: 4px;
-  padding: 0.45rem 0.6rem;
-  font-size: 1rem;
-  max-width: 24rem;
+.input {
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--text);
+  caret-color: var(--accent);
+  background: var(--bg);
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  padding: 8.4px 12px;
+  max-width: 420px;
+}
+
+.input:hover {
+  border-color: color-mix(in srgb, var(--text) 45%, transparent);
+}
+
+.input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+  background: transparent;
 }
 
 .row {
   display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
   align-items: center;
+  gap: 8.4px;
+  flex-wrap: wrap;
 }
 
-.structureTable {
+.prizeRow {
+  display: flex;
+  align-items: center;
+  gap: 8.4px;
+}
+
+.prizePlace {
+  width: 48px;
+  flex-shrink: 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 0.75rem;
+  font-size: 15px;
 }
 
-.structureTable th,
-.structureTable td {
-  border-bottom: 1px solid #2a2a30;
-  padding: 0.4rem 0.5rem;
+.table th {
   text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 5.6px 8.4px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.table td {
+  padding: 5.6px 8.4px;
+  border-bottom: 1px solid var(--divider);
   vertical-align: middle;
 }
 
-.structureTable input[type='number'] {
-  width: 5.5rem;
-  background: #0d0d0f;
-  color: #f5f5f5;
-  border: 1px solid #3a3a42;
-  border-radius: 4px;
-  padding: 0.3rem 0.4rem;
+.table .numberInput {
+  width: 90px;
+  max-width: none;
 }
 
-.breakRow td:first-child {
-  color: #7fd0ff;
+.numberInput {
+  composes: input;
 }
 
-.button {
-  background: #2a2a30;
-  color: #f5f5f5;
-  border: 1px solid #3a3a42;
-  border-radius: 4px;
-  padding: 0.45rem 0.9rem;
-  font-size: 0.95rem;
-  cursor: pointer;
+.breakLabel {
+  color: var(--muted);
 }
 
-.button:hover {
-  background: #3a3a42;
-}
-
-.primaryButton {
-  composes: button;
-  background: #d9b45b;
-  border-color: #d9b45b;
-  color: #17171b;
-  font-weight: bold;
-}
-
-.primaryButton:hover {
-  background: #e6c674;
-}
-
-.dangerButton {
-  composes: button;
-  color: #ff8080;
+.lateRegCell {
+  color: var(--accent);
+  font-weight: 500;
 }
 
 .iconButton {
-  composes: button;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.85rem;
+  composes: btnSecondary;
+  padding: 2.8px 8.4px;
+  font-size: 13px;
+}
+
+.deleteButton {
+  composes: btnGhost;
+  color: var(--neutral-400);
+  font-size: 13px;
 }
 
 .errors {
-  background: #3a1a1a;
-  border: 1px solid #a04040;
-  border-radius: 6px;
-  color: #ffb0b0;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
+  border: 1px solid color-mix(in srgb, var(--danger) 50%, transparent);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  color: var(--danger);
+  border-radius: 8px;
+  padding: 11.2px 16.8px;
+  font-size: 14px;
 }
 
 .errors ul {
   margin: 0;
-  padding-left: 1.25rem;
+  padding-left: 19.6px;
 }
 
-.savedList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.savedList li {
+.footerActions {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.4rem 0;
-  border-bottom: 1px solid #2a2a30;
-}
-
-.savedName {
-  flex: 1;
-}
-
-.notice {
-  color: #8fd08f;
-  margin: 0.5rem 0 0;
-}
-
-.checkboxField {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 22.4px;
 }

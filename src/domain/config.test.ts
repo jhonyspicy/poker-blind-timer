@@ -37,23 +37,20 @@ describe('validateConfig', () => {
     expect(errors.some((e) => e.includes('BB'))).toBe(true)
   })
 
-  it('スターティングスタックが 0 以下はエラー', () => {
-    const config = { ...validConfig(), startingStack: 0 }
-    expect(validateConfig(config).some((e) => e.includes('スターティングスタック'))).toBe(true)
-  })
+  it('レイトレジ締め切りマーカーは 1 つまで', () => {
+    const one: TournamentConfig = {
+      ...validConfig(),
+      structure: [
+        { kind: 'blind', sb: 100, bb: 200, ante: 0, durationMinutes: 20 },
+        { kind: 'lateRegClose' },
+      ],
+    }
+    expect(validateConfig(one)).toEqual([])
 
-  it('アドオン可でチップ量が 0 以下はエラー', () => {
-    const config = { ...validConfig(), addonEnabled: true, addonChip: 0 }
-    expect(validateConfig(config).some((e) => e.includes('アドオン'))).toBe(true)
-  })
-
-  it('アドオン不可ならアドオンチップ量は検証しない', () => {
-    const config = { ...validConfig(), addonEnabled: false, addonChip: 0 }
-    expect(validateConfig(config)).toEqual([])
-  })
-
-  it('レイトレジ位置が範囲外はエラー', () => {
-    const config = { ...validConfig(), lateRegEndIndex: 5 }
-    expect(validateConfig(config).some((e) => e.includes('レイトレジ'))).toBe(true)
+    const two: TournamentConfig = {
+      ...one,
+      structure: [...one.structure, { kind: 'lateRegClose' }],
+    }
+    expect(validateConfig(two).some((e) => e.includes('レイトレジ'))).toBe(true)
   })
 })

@@ -2,6 +2,20 @@
   color-scheme: dark;
   font-family:
     'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+
+  /* デザイントークン(Nocturne DS + ゴールドアクセント、design.md D8) */
+  --bg: #161826;
+  --surface: #232532;
+  --text: #e9e9ed;
+  --accent: #d9a84f;
+  --divider: color-mix(in srgb, #e9e9ed 16%, transparent);
+  --muted: color-mix(in srgb, #e9e9ed 55%, transparent);
+  --neutral-400: #b2b6ca;
+  --neutral-900: #292b31;
+  --danger: #ff8080;
+  --shadow-sm: 0 0 0 1px #3f424d;
+  --shadow-md: 0 0 0 1px #595d6c, 0 6px 18px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 0 0 1px #9397ab, 0 16px 40px rgba(0, 0, 0, 0.65);
 }
 
 * {
@@ -10,6 +24,6 @@
 
 body {
   margin: 0;
-  background: #0d0d0f;
-  color: #f5f5f5;
+  background: var(--bg);
+  color: var(--text);
 }

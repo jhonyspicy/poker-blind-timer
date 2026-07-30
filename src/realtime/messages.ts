@@ -34,10 +34,6 @@ export interface StateSnapshot {
   title: string
   histories: HistoryEntry[]
   stats: TournamentStats
-  /** リモコンのチップ量入力のデフォルト値に使う設定値 */
-  startingStack: number
-  addonEnabled: boolean
-  addonChip: number
 }
 
 /** Ably チャンネル上のメッセージ name */

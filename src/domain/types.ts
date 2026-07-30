@@ -12,30 +12,37 @@ export interface BreakItem {
   durationMinutes: number
 }
 
-export type StructureItem = BlindLevel | BreakItem
+/**
+ * レイトレジストレーション締め切りマーカー。ストラクチャー内に 1 つだけ置け、
+ * タイマーがこの位置に到達した時点で受付終了となる(継続時間は持たない)
+ */
+export interface LateRegCloseItem {
+  kind: 'lateRegClose'
+}
+
+export type StructureItem = BlindLevel | BreakItem | LateRegCloseItem
 
 export interface Prize {
   place: number
   description: string
 }
 
+/** 店舗情報。トーナメント設定とは独立に 1 件だけ保持する */
+export interface RoomInfo {
+  name: string
+}
+
 export interface TournamentConfig {
   id: string
-  shopName: string
   title: string
   prizes: Prize[]
-  /** エントリー時に配られるチップ量。履歴の entry のデフォルト chip */
-  startingStack: number
-  /** アドオン / リバイを受け付けるか */
-  addonEnabled: boolean
-  /** アドオン 1 回あたりのチップ量。履歴の addon のデフォルト chip */
-  addonChip: number
-  structure: StructureItem[]
   /**
-   * レイトレジストレーション締め切り位置。structure のこの index の項目が
-   * 終了した時点で締め切り。null なら締め切りなし
+   * エントリー案内の自由テキスト(例:「2500円で8000点です!」)。
+   * 参加費・チップ量の条件は構造化せず、この案内でプレイヤーに伝える(design.md D11)。
+   * 旧データには存在しないため省略可
    */
-  lateRegEndIndex: number | null
+  entryNotice?: string
+  structure: StructureItem[]
   createdAt: number
   updatedAt: number
 }
@@ -47,7 +54,7 @@ export interface HistoryEntry {
   /** サイネージが採番する連番 */
   id: number
   command: HistoryCommand
-  /** entry / addon のチップ量(記録時点の値)。bust には無い */
+  /** entry / addon のチップ量(記録時に入力した値)。bust には無い */
   chip?: number
 }
 

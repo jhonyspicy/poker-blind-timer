@@ -164,12 +164,58 @@ describe('表示用の導出値', () => {
 
   it('レイトレジ締め切りまでの残り時間と締め切り後の状態', () => {
     const state = startTimer(T0)
-    // 締め切り = L2 終了時(index 1)
-    expect(lateRegStatus(state, structure, 1, T0 + 5 * MIN)).toEqual({
+    // 締め切りマーカー = L2 終了直後(index 2)
+    expect(lateRegStatus(state, lateRegStructure, T0 + 5 * MIN)).toEqual({
       kind: 'open',
       msUntilClose: 35 * MIN,
     })
-    expect(lateRegStatus(state, structure, 1, T0 + 45 * MIN)).toEqual({ kind: 'closed' })
-    expect(lateRegStatus(state, structure, null, T0)).toEqual({ kind: 'none' })
+    expect(lateRegStatus(state, lateRegStructure, T0 + 45 * MIN)).toEqual({ kind: 'closed' })
+    // マーカーが無ければ none
+    expect(lateRegStatus(state, structure, T0)).toEqual({ kind: 'none' })
+  })
+})
+
+// L1(20分) → L2(20分) → レイトレジ締め切り → ブレイク(10分) → L3(15分)
+const lateRegStructure: StructureItem[] = [
+  blind(100, 200, 200, 20),
+  blind(200, 400, 400, 20),
+  { kind: 'lateRegClose' },
+  { kind: 'break', durationMinutes: 10 },
+  blind(300, 600, 600, 15),
+]
+
+describe('レイトレジ締め切りマーカー(時間なし項目)', () => {
+  it('自動遷移はマーカーを即座に通過する', () => {
+    const state = startTimer(T0)
+    // L1 + L2 = 40 分ちょうどでマーカーを飛ばしてブレイクへ
+    expect(resolveTimer(state, lateRegStructure, T0 + 40 * MIN)).toEqual({
+      status: 'running',
+      levelIndex: 3,
+      levelStartedAt: T0 + 40 * MIN,
+    })
+    expect(remainingMs(state, lateRegStructure, T0 + 45 * MIN)).toBe(5 * MIN)
+  })
+
+  it('手動のレベル移動はマーカーを飛ばす', () => {
+    // L2(index 1)進行中に「次へ」→ マーカーを飛ばしてブレイク(index 3)
+    const onL2 = { status: 'running', levelIndex: 1, levelStartedAt: T0 } as const
+    expect(nextLevel(onL2, lateRegStructure, T0 + MIN)).toEqual({
+      status: 'running',
+      levelIndex: 3,
+      levelStartedAt: T0 + MIN,
+    })
+    // ブレイク(index 3)から「前へ」→ マーカーを飛ばして L2(index 1)
+    const onBreak = { status: 'running', levelIndex: 3, levelStartedAt: T0 } as const
+    expect(prevLevel(onBreak, lateRegStructure, T0 + MIN)).toEqual({
+      status: 'running',
+      levelIndex: 1,
+      levelStartedAt: T0 + MIN,
+    })
+  })
+
+  it('マーカーがあっても合計時間・終了判定は変わらない', () => {
+    const state = startTimer(T0)
+    const total = (20 + 20 + 10 + 15) * MIN
+    expect(resolveTimer(state, lateRegStructure, T0 + total)).toEqual({ status: 'finished' })
   })
 })

@@ -3,7 +3,8 @@ import type { StructureItem, TimerState } from './types'
 const MS_PER_MINUTE = 60_000
 
 export function durationMs(item: StructureItem): number {
-  return item.durationMinutes * MS_PER_MINUTE
+  // レイトレジ締め切りマーカーは時間を持たず、到達すると即座に次へ進む
+  return item.kind === 'lateRegClose' ? 0 : item.durationMinutes * MS_PER_MINUTE
 }
 
 export function startTimer(now: number): TimerState {
@@ -76,7 +77,9 @@ export function resumeTimer(state: TimerState, now: number): TimerState {
 export function nextLevel(state: TimerState, structure: StructureItem[], now: number): TimerState {
   const resolved = resolveTimer(state, structure, now)
   if (resolved.status === 'finished') return resolved
-  const nextIndex = resolved.levelIndex + 1
+  // 時間を持たないマーカーには停止できないので飛ばす
+  let nextIndex = resolved.levelIndex + 1
+  while (structure[nextIndex]?.kind === 'lateRegClose') nextIndex += 1
   if (nextIndex >= structure.length) return { status: 'finished' }
   return resolved.status === 'paused'
     ? { status: 'paused', levelIndex: nextIndex, elapsedInLevelMs: 0 }
@@ -87,10 +90,14 @@ export function nextLevel(state: TimerState, structure: StructureItem[], now: nu
 export function prevLevel(state: TimerState, structure: StructureItem[], now: number): TimerState {
   if (structure.length === 0) return { status: 'finished' }
   const resolved = resolveTimer(state, structure, now)
-  if (resolved.status === 'finished') {
-    return { status: 'running', levelIndex: structure.length - 1, levelStartedAt: now }
+  const from = resolved.status === 'finished' ? structure.length : resolved.levelIndex
+  // 時間を持たないマーカーには停止できないので飛ばす
+  let prevIndex = from - 1
+  while (prevIndex >= 0 && structure[prevIndex]?.kind === 'lateRegClose') prevIndex -= 1
+  if (prevIndex < 0) {
+    // 先頭側にマーカーしか無い場合は現在位置(または先頭)を最初からやり直す
+    prevIndex = resolved.status === 'finished' ? structure.length - 1 : resolved.levelIndex
   }
-  const prevIndex = Math.max(0, resolved.levelIndex - 1)
   return resolved.status === 'paused'
     ? { status: 'paused', levelIndex: prevIndex, elapsedInLevelMs: 0 }
     : { status: 'running', levelIndex: prevIndex, levelStartedAt: now }
@@ -155,19 +162,22 @@ export function msUntilNextBreak(
 export type LateRegStatus =
   { kind: 'none' } | { kind: 'open'; msUntilClose: number } | { kind: 'closed' }
 
-/** レイトレジストレーション締め切りまでの残り時間。締め切り項目の終了時点でクローズ */
+/**
+ * レイトレジストレーション締め切りまでの残り時間。
+ * ストラクチャー内の lateRegClose マーカーにタイマーが到達した時点でクローズ
+ */
 export function lateRegStatus(
   state: TimerState,
   structure: StructureItem[],
-  lateRegEndIndex: number | null,
   now: number,
 ): LateRegStatus {
-  if (lateRegEndIndex === null) return { kind: 'none' }
+  const closeIndex = structure.findIndex((item) => item.kind === 'lateRegClose')
+  if (closeIndex === -1) return { kind: 'none' }
   const resolved = resolveTimer(state, structure, now)
   if (resolved.status === 'finished') return { kind: 'closed' }
-  if (resolved.levelIndex > lateRegEndIndex) return { kind: 'closed' }
+  if (resolved.levelIndex >= closeIndex) return { kind: 'closed' }
   let total = remainingMs(resolved, structure, now)
-  for (let i = resolved.levelIndex + 1; i <= lateRegEndIndex && i < structure.length; i++) {
+  for (let i = resolved.levelIndex + 1; i < closeIndex; i++) {
     total += durationMs(structure[i])
   }
   return { kind: 'open', msUntilClose: total }

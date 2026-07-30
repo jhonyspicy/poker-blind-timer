@@ -1,24 +1,24 @@
-import type { BlindLevel, BreakItem, TournamentConfig } from './types'
+import type { BlindLevel, BreakItem, LateRegCloseItem, TournamentConfig } from './types'
 
 export function createBlindLevel(): BlindLevel {
-  return { kind: 'blind', sb: 100, bb: 200, ante: 0, durationMinutes: 20 }
+  return { kind: 'blind', sb: 100, bb: 200, ante: 200, durationMinutes: 20 }
 }
 
 export function createBreak(): BreakItem {
   return { kind: 'break', durationMinutes: 10 }
 }
 
+export function createLateRegClose(): LateRegCloseItem {
+  return { kind: 'lateRegClose' }
+}
+
 export function createNewConfig(now: number = Date.now()): TournamentConfig {
   return {
     id: crypto.randomUUID(),
-    shopName: '',
     title: '',
     prizes: [],
-    startingStack: 25000,
-    addonEnabled: false,
-    addonChip: 25000,
+    entryNotice: '',
     structure: [createBlindLevel()],
-    lateRegEndIndex: null,
     createdAt: now,
     updatedAt: now,
   }
@@ -33,7 +33,13 @@ export function validateConfig(config: TournamentConfig): string[] {
     errors.push('ブラインドレベルを 1 つ以上追加してください')
   }
 
+  const lateRegCloses = config.structure.filter((item) => item.kind === 'lateRegClose')
+  if (lateRegCloses.length > 1) {
+    errors.push('レイトレジストレーション締め切りは 1 つまでです')
+  }
+
   config.structure.forEach((item, index) => {
+    if (item.kind === 'lateRegClose') return
     const label = item.kind === 'break' ? `${index + 1} 番目(ブレイク)` : `${index + 1} 番目`
     if (!Number.isFinite(item.durationMinutes) || item.durationMinutes <= 0) {
       errors.push(`${label}: 継続時間は正の数にしてください`)
@@ -50,19 +56,6 @@ export function validateConfig(config: TournamentConfig): string[] {
       }
     }
   })
-
-  if (!Number.isFinite(config.startingStack) || config.startingStack <= 0) {
-    errors.push('スターティングスタックは正の数にしてください')
-  }
-  if (config.addonEnabled && (!Number.isFinite(config.addonChip) || config.addonChip <= 0)) {
-    errors.push('アドオンのチップ量は正の数にしてください')
-  }
-  if (
-    config.lateRegEndIndex !== null &&
-    (config.lateRegEndIndex < 0 || config.lateRegEndIndex >= config.structure.length)
-  ) {
-    errors.push('レイトレジストレーション締め切り位置が不正です')
-  }
 
   return errors
 }
