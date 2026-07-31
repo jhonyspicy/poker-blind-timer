@@ -6,7 +6,7 @@ import {
   createRealtimeClient,
   isPairingConfigured,
 } from '../../realtime/connection'
-import { MESSAGE_NAME } from '../../realtime/messages'
+import { MESSAGE_NAME, type RemoteCommandInput } from '../../realtime/messages'
 
 /**
  * リモコン画面の雛形 + リアルタイム接続テスト(仮)。
@@ -52,10 +52,10 @@ export default function RemotePage() {
     }
   }, [channelId])
 
-  const sendCommand = () => {
+  const sendCommand = (input: RemoteCommandInput) => {
     const requestId = crypto.randomUUID()
-    void channelRef.current?.publish(MESSAGE_NAME.command, { type: 'REQUEST_STATE', requestId })
-    addLog(`送信(command): REQUEST_STATE (${requestId.slice(0, 8)}…)`)
+    void channelRef.current?.publish(MESSAGE_NAME.command, { ...input, requestId })
+    addLog(`送信(command): ${input.type}`)
   }
 
   return (
@@ -70,11 +70,44 @@ export default function RemotePage() {
       ) : !channelId ? (
         <p>チャンネル識別子がありません。サイネージが表示するリモコン URL から開いてください。</p>
       ) : (
-        <p>
-          <button type="button" onClick={sendCommand}>
-            command を送信(REQUEST_STATE)
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+          <button type="button" onClick={() => sendCommand({ type: 'START' })}>
+            トーナメント開始
           </button>
-        </p>
+          <button type="button" onClick={() => sendCommand({ type: 'PAUSE' })}>
+            一時停止
+          </button>
+          <button type="button" onClick={() => sendCommand({ type: 'RESUME' })}>
+            再開
+          </button>
+          <button type="button" onClick={() => sendCommand({ type: 'NEXT_LEVEL' })}>
+            次のレベルへ
+          </button>
+          <button type="button" onClick={() => sendCommand({ type: 'PREV_LEVEL' })}>
+            前のレベルへ
+          </button>
+          <button
+            type="button"
+            onClick={() => sendCommand({ type: 'HISTORY_ADD', command: 'entry', chip: 25000 })}
+          >
+            エントリー(25000)
+          </button>
+          <button
+            type="button"
+            onClick={() => sendCommand({ type: 'HISTORY_ADD', command: 'bust' })}
+          >
+            バスト
+          </button>
+          <button
+            type="button"
+            onClick={() => sendCommand({ type: 'HISTORY_ADD', command: 'addon', chip: 10000 })}
+          >
+            アドオン(10000)
+          </button>
+          <button type="button" onClick={() => sendCommand({ type: 'REQUEST_STATE' })}>
+            状態を要求
+          </button>
+        </div>
       )}
       <ul style={{ fontFamily: 'monospace', fontSize: '0.85rem', lineHeight: 1.7 }}>
         {logs.map((log, index) => (

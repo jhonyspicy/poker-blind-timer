@@ -1,0 +1,141 @@
+/* 待機画面の中央 UI(黒×ゴールド)。デザインモック src/style.css の移植 */
+
+.page {
+  position: fixed;
+  inset: 0;
+  background: #050403;
+  overflow: hidden;
+}
+
+.uiLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.uiCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: max(8px, 2vh);
+  width: 52vw;
+  text-align: center;
+  user-select: none;
+}
+
+/* ゴールドのグラデーション文字(共通) */
+.goldText {
+  background: linear-gradient(
+    180deg,
+    #8a6520 0%,
+    #e8c25e 22%,
+    #fdf0c0 42%,
+    #e8c25e 55%,
+    #9a712a 75%,
+    #d9b458 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.8));
+}
+
+.storeName {
+  margin: 0;
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
+  font-weight: 700;
+  font-size: max(48px, 8.5vw);
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+
+.tournamentName {
+  margin: 0;
+  font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', serif;
+  font-weight: 800;
+  font-size: max(28px, 4.6vw);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  font-style: italic;
+}
+
+/* 両脇の細い罫線 */
+.rule {
+  display: inline-block;
+  width: 3em;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #c9a44f, transparent);
+}
+
+/* BLINDS プレート(二重の金枠) */
+.entryPlate {
+  margin-top: max(6px, 1.5vh);
+  padding: max(16px, 2.6vh) max(48px, 6vw);
+  background:
+    radial-gradient(120% 160% at 50% 120%, rgba(212, 169, 78, 0.1), transparent 60%),
+    rgba(8, 6, 4, 0.55);
+  border: 1.5px solid #c9a44f;
+  outline: 1px solid rgba(201, 164, 79, 0.45);
+  outline-offset: 5px;
+  box-shadow:
+    0 0 40px rgba(212, 169, 78, 0.12),
+    inset 0 0 30px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: max(4px, 1vh);
+}
+
+.entryLabel {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
+  font-weight: 600;
+  font-size: max(16px, 1.8vw);
+  letter-spacing: 0.5em;
+  text-indent: 0.5em;
+  color: #e6cb85;
+  white-space: nowrap;
+}
+
+.blinds {
+  display: flex;
+  align-items: flex-end;
+  gap: max(20px, 3vw);
+}
+
+.blindItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: max(2px, 0.6vh);
+}
+
+.blindKey {
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
+  font-weight: 600;
+  font-size: max(20px, 2.4vw);
+  letter-spacing: 0.28em;
+  text-indent: 0.28em;
+  color: #cbbb92;
+}
+
+.blindVal {
+  font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', serif;
+  font-weight: 700;
+  font-size: max(44px, 6vw);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+/* 項目間の縦罫 */
+.blindSep {
+  align-self: stretch;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(201, 164, 79, 0.55), transparent);
+}

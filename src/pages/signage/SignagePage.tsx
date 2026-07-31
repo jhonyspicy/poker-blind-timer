@@ -1,103 +1,140 @@
-import * as Ably from 'ably'
-import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import {
-  ablyChannelName,
-  buildRemoteUrl,
-  createChannelId,
-  createRealtimeClient,
-  isPairingConfigured,
-} from '../../realtime/connection'
-import { MESSAGE_NAME } from '../../realtime/messages'
+import { formatClock } from '../../domain/format'
+import { lateRegStatus, remainingMs } from '../../domain/timer'
+import type { SessionState, TournamentConfig } from '../../domain/types'
+import TimerScreen from './TimerScreen'
+import { useSignageController, type SignageData } from './useSignageController'
+import VideoOverlay from './VideoOverlay'
+import WaitingScreen from './WaitingScreen'
+import { deriveStats } from '../../domain/stats'
+
+/** ブレイク画面(デザイン未作成のためプレースホルダー) */
+function BreakPlaceholder({
+  config,
+  session,
+  now,
+}: {
+  config: TournamentConfig
+  session: SessionState
+  now: number
+}) {
+  const remaining = remainingMs(session.timer, config.structure, now)
+  const lateReg = lateRegStatus(session.timer, config.structure, now)
+  const notice = config.entryNotice?.trim()
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: '#04070d',
+        display: 'grid',
+        placeItems: 'center',
+        color: '#fff',
+        fontFamily: "'Noto Sans JP', sans-serif",
+      }}
+    >
+      <div style={{ textAlign: 'center' }}>
+        <div
+          style={{
+            fontFamily: 'Oswald, sans-serif',
+            fontSize: '8vw',
+            fontWeight: 600,
+            letterSpacing: '0.2em',
+            color: '#5aa2e8',
+          }}
+        >
+          BREAK
+        </div>
+        <div style={{ fontFamily: 'Oswald, sans-serif', fontSize: '14vw', fontWeight: 600 }}>
+          {formatClock(remaining)}
+        </div>
+        {notice && lateReg.kind === 'open' && (
+          <div style={{ marginTop: '3vh', fontSize: '3vw', fontWeight: 700, color: '#e8c15a' }}>
+            {notice}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** 優勝画面(デザイン未作成のためプレースホルダー) */
+function ChampionPlaceholder({ config }: { config: TournamentConfig }) {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: '#050403',
+        display: 'grid',
+        placeItems: 'center',
+        color: '#e8c15a',
+        fontFamily: "'Noto Sans JP', sans-serif",
+        textAlign: 'center',
+      }}
+    >
+      <div>
+        <div style={{ fontFamily: 'Oswald, sans-serif', fontSize: '8vw', fontWeight: 600 }}>
+          WINNER!
+        </div>
+        <div style={{ fontSize: '3vw', fontWeight: 700, color: '#fff' }}>{config.title}</div>
+      </div>
+    </div>
+  )
+}
+
+function SignageBody({ data }: { data: SignageData }) {
+  const { config, session, roomName, now, phase } = data
+  switch (phase) {
+    case 'waiting':
+      return <WaitingScreen storeName={roomName} config={config} />
+    case 'break':
+      return <BreakPlaceholder config={config} session={session} now={now} />
+    case 'champion':
+      return <ChampionPlaceholder config={config} />
+    default:
+      return (
+        <TimerScreen
+          config={config}
+          timer={session.timer}
+          stats={deriveStats(session.histories)}
+          now={now}
+        />
+      )
+  }
+}
 
 /**
- * サイネージ画面の雛形 + リアルタイム接続テスト(仮)。
- * チャンネル発行 → リモコン URL 表示 → command 受信で state を返す疎通確認のみを行う。
- * 本実装(タイマー表示)は画面の作り直しステップで置き換える。
+ * サイネージ画面。保存済みセッションから待機 / タイマー / ブレイク / 優勝を表示し、
+ * リモコンのコマンドと演出動画オーバーレイを制御する
  */
 export default function SignagePage() {
-  const [channelId, setChannelId] = useState<string | null>(null)
-  const [remoteUrl, setRemoteUrl] = useState<string | null>(null)
-  const [logs, setLogs] = useState<string[]>([])
-  const clientRef = useRef<Ably.Realtime | null>(null)
+  const state = useSignageController()
 
-  const addLog = (message: string) => {
-    setLogs((prev) => [...prev, `${new Date().toLocaleTimeString()} ${message}`])
+  if (state === 'loading') {
+    return null
   }
-
-  useEffect(
-    () => () => {
-      clientRef.current?.close()
-    },
-    [],
-  )
-
-  const startTest = async () => {
-    try {
-      const id = await createChannelId()
-      setChannelId(id)
-      setRemoteUrl(buildRemoteUrl(id))
-      addLog(`チャンネル ID を発行: ${id}`)
-
-      const client = createRealtimeClient(id)
-      clientRef.current = client
-      client.connection.on('connected', () => addLog('Ably に接続しました'))
-      client.connection.on('disconnected', () => addLog('Ably から切断されました(再接続待ち)'))
-      client.connection.on('failed', (stateChange) => {
-        addLog(`Ably 接続失敗: ${stateChange.reason?.message ?? '不明なエラー'}`)
-      })
-
-      const channel = client.channels.get(ablyChannelName(id))
-      await channel.subscribe(MESSAGE_NAME.command, (message) => {
-        addLog(`受信(command): ${JSON.stringify(message.data)}`)
-        // 疎通確認: 受け取った command に対して state を返す
-        void channel.publish(MESSAGE_NAME.state, {
-          pong: true,
-          echo: message.data,
-          publishedAt: Date.now(),
-        })
-        addLog('送信(state): pong を返しました')
-      })
-      addLog('command の購読を開始しました')
-    } catch (error) {
-      addLog(`エラー: ${error instanceof Error ? error.message : String(error)}`)
-    }
+  if (state === 'no-session') {
+    return (
+      <main style={{ padding: '2rem' }}>
+        <h1>サイネージ</h1>
+        <p>進行中のトーナメントがありません。トップページの「開始」から始めてください。</p>
+        <p>
+          <Link to="/">← トップへ戻る</Link>
+        </p>
+      </main>
+    )
   }
-
   return (
-    <main style={{ padding: '2rem', maxWidth: '48rem' }}>
-      <h1>サイネージ(接続テスト)</h1>
-      <p>タイマー表示は未実装です。ここではリモコンとのリアルタイム接続の疎通のみ確認できます。</p>
-      {!isPairingConfigured() ? (
-        <p>
-          VITE_PAIRING_API_URL が設定されていないため、接続テストは実行できません(.env.local
-          を確認)。
-        </p>
-      ) : channelId === null ? (
-        <p>
-          <button type="button" onClick={() => void startTest()}>
-            接続テストを開始(チャンネル発行)
-          </button>
-        </p>
-      ) : (
-        <>
-          <p style={{ wordBreak: 'break-all' }}>
-            リモコン URL(別タブ・スマホで開く):
-            <br />
-            <a href={remoteUrl ?? '#'} target="_blank" rel="noreferrer">
-              {remoteUrl}
-            </a>
-          </p>
-        </>
+    <>
+      <SignageBody data={state} />
+      {state.overlayEvent && (
+        <VideoOverlay
+          key={state.overlayEvent}
+          event={state.overlayEvent}
+          onDone={state.onOverlayDone}
+        />
       )}
-      <ul style={{ fontFamily: 'monospace', fontSize: '0.85rem', lineHeight: 1.7 }}>
-        {logs.map((log, index) => (
-          <li key={index}>{log}</li>
-        ))}
-      </ul>
-      <p>
-        <Link to="/">← トップへ戻る</Link>
-      </p>
-    </main>
+    </>
   )
 }

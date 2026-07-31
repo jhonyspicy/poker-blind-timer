@@ -1,0 +1,11 @@
+/* 全画面固定の WebGL Canvas。UI はこの上に重ねる */
+
+.canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  z-index: 0;
+}

@@ -1,0 +1,493 @@
+/* タイマー画面。1920×1080 基準のレイアウトを scale で画面にフィットさせる
+   (デザインモック Poker Timer Level Up v2 の移植) */
+
+.page {
+  position: fixed;
+  inset: 0;
+  background: #050505;
+  overflow: hidden;
+  font-family: 'Noto Sans JP', sans-serif;
+  color: #fff;
+}
+
+.stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: center;
+}
+
+.title {
+  text-align: center;
+  font-weight: 900;
+  font-size: 80px;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 8px #000;
+}
+
+.grid {
+  position: absolute;
+  top: 140px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 410px 1fr 430px;
+  gap: 24px;
+  padding: 0 28px 28px;
+}
+
+.side {
+  transition: opacity 0.5s ease;
+}
+
+/* — 共通カード — */
+.card {
+  border: 1px solid rgba(201, 162, 74, 0.35);
+  border-radius: 14px;
+  background: rgba(8, 7, 4, 0.72);
+}
+
+/* — 左: PRIZE LIST — */
+.prizePanel {
+  composes: card;
+  padding: 28px 30px;
+  align-self: start;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.prizeHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  border-bottom: 1px solid rgba(201, 162, 74, 0.3);
+  padding-bottom: 16px;
+  font-family: Oswald, sans-serif;
+  font-weight: 600;
+  font-size: 30px;
+  letter-spacing: 0.08em;
+}
+
+.prizeList {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.prizeListFade {
+  mask-image: linear-gradient(to bottom, #000 72%, transparent 98%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 98%);
+}
+
+.prizeRow {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.prizeRank {
+  font-family: Oswald, sans-serif;
+  font-weight: 600;
+  font-size: 32px;
+}
+
+.prizeValue {
+  font-weight: 500;
+  font-size: 24px;
+  color: #e9e6de;
+  line-height: 1.35;
+}
+
+/* — 中央 — */
+.center {
+  position: relative;
+}
+
+.ringCanvas {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 808px;
+  height: 808px;
+  pointer-events: none;
+}
+
+.levelBadgeRow {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.levelChevron {
+  color: #c9a24a;
+  font-family: Oswald, sans-serif;
+  font-size: 30px;
+  letter-spacing: -4px;
+}
+
+.levelBadge {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid rgba(201, 162, 74, 0.7);
+  background: #0a0a08;
+  border-radius: 6px;
+  padding: 8px 30px;
+}
+
+.levelLabel {
+  font-family: Oswald, sans-serif;
+  font-weight: 500;
+  font-size: 32px;
+  letter-spacing: 0.14em;
+}
+
+.levelValue {
+  font-family: Oswald, sans-serif;
+  font-weight: 600;
+  font-size: 38px;
+}
+
+.timerArea {
+  position: absolute;
+  top: 80px;
+  left: 0;
+  right: 0;
+  height: 350px;
+}
+
+.time {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Oswald, sans-serif;
+  font-weight: 600;
+  font-size: 340px;
+  letter-spacing: 0.02em;
+  background: linear-gradient(180deg, #fdf3d0 8%, #f3cf6f 45%, #dfa32e 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+}
+
+.levelUpText {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: max-content;
+  padding: 40px;
+  font-family: Oswald, sans-serif;
+  font-weight: 600;
+  font-size: 300px;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  background: linear-gradient(180deg, #fff 15%, #f6dfa0 55%, #e0a835 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 26px rgba(240, 196, 90, 0.45));
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.blindsLabel {
+  position: absolute;
+  top: 470px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-family: Oswald, sans-serif;
+  font-weight: 500;
+  font-size: 36px;
+  letter-spacing: 0.1em;
+  color: #e8c15a;
+}
+
+.blindsRoll {
+  position: absolute;
+  top: 512px;
+  left: 0;
+  right: 0;
+}
+
+.blindsValue {
+  font-family: Oswald, sans-serif;
+  font-weight: 600;
+  font-size: 92px;
+  color: #fff;
+  text-align: center;
+}
+
+.anteRow {
+  position: absolute;
+  top: 622px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.anteLabel {
+  font-family: Oswald, sans-serif;
+  font-weight: 500;
+  font-size: 56px;
+  letter-spacing: 0.1em;
+  color: #c9a24a;
+}
+
+.anteValue {
+  font-family: Oswald, sans-serif;
+  font-weight: 500;
+  font-size: 68px;
+  color: #fff;
+  text-align: center;
+}
+
+.divider {
+  position: absolute;
+  top: 718px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #c9a24a;
+  font-size: 14px;
+}
+
+.dividerLine {
+  width: 150px;
+  height: 1px;
+}
+
+.dividerLineL {
+  composes: dividerLine;
+  background: linear-gradient(90deg, transparent, rgba(201, 162, 74, 0.6));
+}
+
+.dividerLineR {
+  composes: dividerLine;
+  background: linear-gradient(270deg, transparent, rgba(201, 162, 74, 0.6));
+}
+
+.nextLabel {
+  position: absolute;
+  top: 748px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-family: Oswald, sans-serif;
+  font-weight: 500;
+  font-size: 26px;
+  letter-spacing: 0.12em;
+  color: #c9a24a;
+}
+
+.nextChevron {
+  font-size: 22px;
+  letter-spacing: -2px;
+}
+
+.nextRoll {
+  position: absolute;
+  top: 782px;
+  left: 0;
+  right: 0;
+}
+
+.nextValue {
+  font-family: Oswald, sans-serif;
+  font-weight: 500;
+  font-size: 46px;
+  color: #e9e6de;
+  text-align: center;
+}
+
+.nextAnte {
+  font-size: 32px;
+  color: #c9a24a;
+}
+
+/* — 右パネル — */
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  align-self: start;
+}
+
+.statPair {
+  composes: card;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+}
+
+.statCell {
+  padding: 24px 28px;
+}
+
+.statCellDivided {
+  composes: statCell;
+  border-right: 1px solid rgba(201, 162, 74, 0.25);
+}
+
+.statLabel {
+  font-family: Oswald, sans-serif;
+  font-weight: 500;
+  font-size: 24px;
+  letter-spacing: 0.08em;
+  color: #e8c15a;
+}
+
+.statValue {
+  margin-top: 10px;
+  font-family: Oswald, sans-serif;
+  font-weight: 600;
+  font-size: 52px;
+  color: #fff;
+}
+
+.statSub {
+  font-size: 32px;
+  color: #bdb8ac;
+}
+
+.avgCard {
+  composes: card;
+  padding: 24px 28px;
+}
+
+.avgValue {
+  margin-top: 10px;
+  font-family: Oswald, sans-serif;
+  font-weight: 600;
+  font-size: 56px;
+  color: #fff;
+}
+
+.breakCard {
+  border: 1px solid rgba(64, 132, 214, 0.5);
+  border-radius: 14px;
+  background: rgba(4, 9, 16, 0.72);
+  padding: 24px 28px;
+}
+
+.breakLabel {
+  font-family: Oswald, sans-serif;
+  font-weight: 500;
+  font-size: 26px;
+  letter-spacing: 0.08em;
+  color: #5aa2e8;
+}
+
+.breakValue {
+  margin-top: 14px;
+  font-family: Oswald, sans-serif;
+  font-weight: 600;
+  font-size: 96px;
+  line-height: 1;
+  color: #4a95dd;
+  text-align: center;
+}
+
+.breakFooter {
+  margin-top: 16px;
+  border-top: 1px solid rgba(64, 132, 214, 0.3);
+  padding-top: 12px;
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+}
+
+.breakTimeLabel {
+  font-family: Oswald, sans-serif;
+  font-weight: 500;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  color: #5aa2e8;
+}
+
+.breakTimeValue {
+  font-family: Oswald, sans-serif;
+  font-weight: 500;
+  font-size: 26px;
+  color: #e9e6de;
+}
+
+.lateRegCard {
+  composes: card;
+  padding: 24px 28px;
+}
+
+.lateRegHeader {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+}
+
+.lateRegLabel {
+  font-family: Oswald, sans-serif;
+  font-weight: 500;
+  font-size: 26px;
+  letter-spacing: 0.08em;
+  color: #e8c15a;
+}
+
+.lateRegEndsIn {
+  font-family: Oswald, sans-serif;
+  font-weight: 400;
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  color: #a89b7d;
+}
+
+.lateRegValue {
+  margin-top: 14px;
+  font-family: Oswald, sans-serif;
+  font-weight: 600;
+  font-size: 96px;
+  line-height: 1;
+  color: #e8c15a;
+  text-align: center;
+}
+
+/* — 一時停止テープ演出(最前面・クリック透過) — */
+.pauseCanvas {
+  position: absolute;
+  inset: 0;
+  width: 1920px;
+  height: 1080px;
+  pointer-events: none;
+  z-index: 30;
+}

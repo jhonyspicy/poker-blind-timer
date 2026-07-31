@@ -46,25 +46,25 @@
 ## 6. サイネージ画面(作り直し)
 
 - [x] 6.1 ドメイン拡張: タイマー状態に「開始前(waiting)」を追加し、セッションにチャンネル ID を保持。優勝確定(現在人数 1)の導出を実装(単体テスト・DB v4 マイグレーション含む)
-- [ ] 6.2 待機画面を実装(`three` 導入、チップ浮遊背景モックの移植、店名・トーナメント名・最初のブラインド)
-- [ ] 6.3 タイマー画面の表示を実装(1920×1080 スケーリング、Canvas 円形ゲージ、LEVEL バッジ、BLINDS/ANTE/NEXT、PRIZE LIST、PLAYERS/ADD-ON/AVERAGE STACK/NEXT BREAK/LATE REGISTRATION、WebGL 背景の移植)
-- [ ] 6.4 レベルアップ演出・一時停止テープ演出を移植し、タイマー進行と接続(prefers-reduced-motion 対応)
-- [ ] 6.5 ブレイク画面・優勝画面を実装(デザイン未作成のためプレースホルダー。エントリー案内の表示を含む)
-- [ ] 6.6 演出動画オーバーレイ基盤を実装(イベント→動画マッピング、mp4 / webm+ogg の 2 形式再生、素材未配置時はスキップ、各イベント 1 回だけ再生)
-- [ ] 6.7 状態の IndexedDB 保存とリロード復元を実装(4 画面の復元、保存済みチャンネル ID での再接続、進行中・一時停止中の両方)
+- [x] 6.2 待機画面を実装(`three` 導入、チップ浮遊背景モックの移植、店名・トーナメント名・最初のブラインド)
+- [x] 6.3 タイマー画面の表示を実装(1920×1080 スケーリング、Canvas 円形ゲージ、LEVEL バッジ、BLINDS/ANTE/NEXT、PRIZE LIST、PLAYERS/ADD-ON/AVERAGE STACK/NEXT BREAK/LATE REGISTRATION、WebGL 背景の移植)
+- [x] 6.4 レベルアップ演出・一時停止テープ演出を移植し、タイマー進行と接続(prefers-reduced-motion 対応)
+- [x] 6.5 ブレイク画面・優勝画面を実装(デザイン未作成のためプレースホルダー。エントリー案内の表示を含む)
+- [x] 6.6 演出動画オーバーレイ基盤を実装(イベント→動画マッピング、webm+ogg 同時再生、素材未配置時はスキップ、各イベント 1 回だけ再生)+ 効果音・アナウンス再生基盤(public/sounds、レベルアップ 10 秒前予告など)
+- [x] 6.7 状態の IndexedDB 保存とリロード復元を実装(4 画面の復元、保存済みチャンネル ID での再接続、進行中・一時停止中の両方)
 - [ ] 6.8 フルスクリーン切り替えと QR 再表示を実装
 
 ## 7. Cloudflare Worker(接続 URL 発行・トークン認証)
 
 - [x] 7.1 `worker/` に Worker プロジェクトを作成(wrangler、TypeScript)
 - [x] 7.2 `POST /session`(128bit ランダムなチャンネル ID 発行)と `GET /token?ch=<id>`(チャンネル限定の Ably TokenRequest 発行)を実装(CORS 設定含む)
-- [ ] 7.3 Worker をデプロイし、Ably API キーを secret に設定。フロントから `VITE_PAIRING_API_URL` で参照できるようにする
+- [x] 7.3 Worker をデプロイし、Ably API キーを secret に設定。フロントから `VITE_PAIRING_API_URL` で参照できるようにする
 
 ## 8. リアルタイム同期とペアリング
 
 - [x] 8.1 メッセージ型定義を更新(command: START / HISTORY_ADD / HISTORY_UPDATE / HISTORY_DELETE / PAUSE / RESUME / NEXT_LEVEL / PREV_LEVEL / REQUEST_STATE、TITLE_UPDATE の削除、requestId による重複排除、state: histories を含むスナップショット)
-- [ ] 8.2 Ably 接続層を更新(トークン認証 authUrl、チャンネル購読/発行、presence(リモコン入室の宣言と検知)、再接続処理、購読解除によるリーク防止)
-- [ ] 8.3 サイネージ側を実装: 保存済みチャンネルでの接続、コマンド受信と状態への適用、状態変化時の state publish
+- [x] 8.2 Ably 接続層を更新(トークン認証 authUrl、チャンネル購読/発行、presence(リモコン入室の宣言と検知)、再接続処理、購読解除によるリーク防止)
+- [x] 8.3 サイネージ側を実装: 保存済みチャンネルでの接続、コマンド受信と状態への適用、状態変化時の state publish
 - [ ] 8.4 リモコン画面を実装: `?ch=` からの接続(なし/失敗時の案内)、presence 入室、操作ボタン(トーナメント開始、エントリー/バスト/アドオンの記録、チップ量の入力、一時停止/再開、レベル移動)、履歴一覧の表示と id 指定の修正・削除、受信 state による現在状態表示
 - [ ] 8.5 スマホ向け UI 調整(片手操作、誤タップ防止、影響の大きい操作の分離配置)
 

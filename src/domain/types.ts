@@ -86,6 +86,11 @@ export interface SessionState {
   histories: HistoryEntry[]
   /** 次に採番する履歴 id */
   nextHistoryId: number
+  /**
+   * 再生済みの演出イベント名(各トーナメント 1 回だけ再生するため)。
+   * 旧データには存在しないため省略可
+   */
+  playedEffects?: string[]
 }
 
 export interface TournamentStats {
