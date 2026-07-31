@@ -250,6 +250,47 @@
   margin-top: 5.6px;
 }
 
+.pairingBody {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11.2px;
+  padding: 8.4px 0;
+}
+
+.qrBox {
+  background: #fff;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.pairingUrl {
+  font-size: 12px;
+  color: var(--muted);
+  word-break: break-all;
+  text-align: center;
+}
+
+.pairingStatus {
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+  padding: 5.6px 0;
+}
+
+.pairingStatusReady {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--accent);
+  padding: 5.6px 0;
+}
+
+.pairingError {
+  font-size: 14px;
+  color: var(--danger);
+}
+
 .toast {
   position: fixed;
   bottom: 28px;

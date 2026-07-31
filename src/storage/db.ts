@@ -17,7 +17,7 @@ interface BlindTimerDB extends DBSchema {
 }
 
 const DB_NAME = 'poker-blind-timer'
-const DB_VERSION = 3
+const DB_VERSION = 4
 
 /** session / room ストアは 1 件のみ保持する固定キー */
 const SESSION_KEY = 'current'
@@ -59,43 +59,57 @@ function getDB(): Promise<IDBPDatabase<BlindTimerDB>> {
             })
         }
       }
-      if (oldVersion >= 1 && oldVersion < 3) {
+      if (oldVersion >= 1 && oldVersion < 4) {
         // v3: lateRegEndIndex(位置番号)を lateRegClose マーカー項目へ変換し、
-        // 廃止したスターティングスタック / アドオン設定を取り除く
+        //     廃止したスターティングスタック / アドオン設定を取り除く
+        // v4: セッションの titleOverride を廃止し、channelId を追加する
+        // セッションへの書き込みが競合しないよう、変換をまとめて 1 回の put で行う
         const configsStore = tx.objectStore('configs')
-        void configsStore.getAll().then((stored) => {
-          for (const legacy of stored as LegacyConfig[]) {
-            const { lateRegEndIndex, startingStack, addonEnabled, addonChip, ...config } = legacy
-            void startingStack
-            void addonEnabled
-            void addonChip
-            const structure = [...config.structure]
-            let insertedAt: number | null = null
-            if (
-              typeof lateRegEndIndex === 'number' &&
-              lateRegEndIndex >= 0 &&
-              lateRegEndIndex < structure.length &&
-              !structure.some((item) => item.kind === 'lateRegClose')
-            ) {
-              insertedAt = lateRegEndIndex + 1
-              structure.splice(insertedAt, 0, { kind: 'lateRegClose' })
+        const sessionStore = tx.objectStore('session')
+        void configsStore.getAll().then((storedConfigs) => {
+          /** v3 でマーカーを挿入した位置(configId → 挿入 index) */
+          const insertedAt = new Map<string, number>()
+          if (oldVersion < 3) {
+            for (const legacy of storedConfigs as LegacyConfig[]) {
+              const { lateRegEndIndex, startingStack, addonEnabled, addonChip, ...config } = legacy
+              void startingStack
+              void addonEnabled
+              void addonChip
+              const structure = [...config.structure]
+              if (
+                typeof lateRegEndIndex === 'number' &&
+                lateRegEndIndex >= 0 &&
+                lateRegEndIndex < structure.length &&
+                !structure.some((item) => item.kind === 'lateRegClose')
+              ) {
+                insertedAt.set(config.id, lateRegEndIndex + 1)
+                structure.splice(lateRegEndIndex + 1, 0, { kind: 'lateRegClose' })
+              }
+              void configsStore.put({ ...config, structure })
             }
-            void configsStore.put({ ...config, structure })
-            if (insertedAt === null) continue
-            // マーカー挿入で structure の index がずれるため、進行中セッションの
-            // levelIndex を追従させる(復元時にレベルが飛ぶ/戻るのを防ぐ)
-            const at = insertedAt
-            const sessionStore = tx.objectStore('session')
-            void sessionStore.get(SESSION_KEY).then((session) => {
-              if (!session || session.configId !== config.id) return
-              const timer = session.timer
-              if (timer.status === 'finished' || timer.levelIndex < at) return
-              void sessionStore.put(
-                { ...session, timer: { ...timer, levelIndex: timer.levelIndex + 1 } },
-                SESSION_KEY,
-              )
-            })
           }
+          void sessionStore.get(SESSION_KEY).then((storedSession) => {
+            if (!storedSession) return
+            const { titleOverride, ...session } = storedSession as SessionState & {
+              titleOverride?: string | null
+            }
+            void titleOverride
+            let timer = session.timer
+            // v3: マーカー挿入で structure の index がずれた分、進行中セッションの
+            // levelIndex を追従させる(復元時にレベルが飛ぶ/戻るのを防ぐ)
+            const at = insertedAt.get(session.configId)
+            if (
+              at !== undefined &&
+              (timer.status === 'running' || timer.status === 'paused') &&
+              timer.levelIndex >= at
+            ) {
+              timer = { ...timer, levelIndex: timer.levelIndex + 1 }
+            }
+            void sessionStore.put(
+              { ...session, timer, channelId: session.channelId ?? '' },
+              SESSION_KEY,
+            )
+          })
         })
       }
     },

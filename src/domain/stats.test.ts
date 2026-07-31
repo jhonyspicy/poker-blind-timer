@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { addHistory, deleteHistory, deriveStats, updateHistoryChip } from './stats'
+import {
+  addHistory,
+  deleteHistory,
+  deriveStats,
+  isChampionDecided,
+  updateHistoryChip,
+} from './stats'
 import type { HistoryEntry } from './types'
 
 // spec のシナリオ: entry(25000) × 3、addon(30000) × 1、bust × 1
@@ -36,6 +42,19 @@ describe('deriveStats', () => {
     ]
     // バストしてもチップは場に残る想定だが、表示上プレイヤー 0 なら平均は null
     expect(deriveStats(allBusted).averageStack).toBeNull()
+  })
+
+  it('優勝確定は「2 人以上エントリーして残り 1 人」のときだけ', () => {
+    const entry = (id: number): HistoryEntry => ({ id, command: 'entry', chip: 1000 })
+    const bust = (id: number): HistoryEntry => ({ id, command: 'bust' })
+    // 開始直後のエントリー 1 件は優勝ではない
+    expect(isChampionDecided(deriveStats([entry(1)]))).toBe(false)
+    // 2 人 → まだ
+    expect(isChampionDecided(deriveStats([entry(1), entry(2)]))).toBe(false)
+    // 2 人中 1 人バスト → 優勝確定
+    expect(isChampionDecided(deriveStats([entry(1), entry(2), bust(3)]))).toBe(true)
+    // 誤操作の取り消しで 2 人に戻ったら優勝ではなくなる
+    expect(isChampionDecided(deriveStats([entry(1), entry(2)]))).toBe(false)
   })
 
   it('平均チップは四捨五入した整数になる', () => {

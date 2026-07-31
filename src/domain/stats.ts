@@ -35,6 +35,14 @@ export function deriveStats(histories: HistoryEntry[]): TournamentStats {
   }
 }
 
+/**
+ * 優勝が確定したか。現在プレイヤーが 1 人まで絞られた状態。
+ * エントリーが 1 件だけの開始直後(bust 無し)は優勝とみなさない
+ */
+export function isChampionDecided(stats: TournamentStats): boolean {
+  return stats.totalEntries >= 2 && stats.currentPlayers === 1
+}
+
 export interface AddHistoryResult {
   histories: HistoryEntry[]
   nextHistoryId: number

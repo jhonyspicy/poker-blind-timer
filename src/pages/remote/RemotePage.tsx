@@ -25,7 +25,8 @@ export default function RemotePage() {
 
   useEffect(() => {
     if (!channelId || !isPairingConfigured()) return
-    const client = createRealtimeClient(channelId)
+    // presence 入室には clientId が必要(トークンはワイルドカード許可)
+    const client = createRealtimeClient(channelId, `remote-${crypto.randomUUID().slice(0, 8)}`)
     client.connection.on('connected', () => addLog('Ably に接続しました'))
     client.connection.on('disconnected', () => addLog('Ably から切断されました(再接続待ち)'))
     client.connection.on('failed', (stateChange) => {
@@ -38,6 +39,13 @@ export default function RemotePage() {
         addLog(`受信(state): ${JSON.stringify(message.data)}`)
       })
       .then(() => addLog('state の購読を開始しました'))
+    // サイネージ側の接続検知(presence)のため入室を宣言する
+    void channel.presence
+      .enter({ role: 'remote' })
+      .then(() => addLog('presence: 入室を宣言しました'))
+      .catch((error: unknown) =>
+        addLog(`presence エラー: ${error instanceof Error ? error.message : String(error)}`),
+      )
     return () => {
       channelRef.current = null
       client.close()

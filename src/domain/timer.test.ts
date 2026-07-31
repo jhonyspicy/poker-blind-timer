@@ -184,6 +184,31 @@ const lateRegStructure: StructureItem[] = [
   blind(300, 600, 600, 15),
 ]
 
+describe('開始前(waiting)', () => {
+  const waiting = { status: 'waiting' } as const
+
+  it('時間が経過しても進行しない', () => {
+    expect(resolveTimer(waiting, structure, T0 + 100 * MIN)).toEqual(waiting)
+  })
+
+  it('残り時間は最初の項目の持ち時間を返す', () => {
+    expect(remainingMs(waiting, structure, T0)).toBe(20 * MIN)
+  })
+
+  it('レベル移動は無視される', () => {
+    expect(nextLevel(waiting, structure, T0)).toEqual(waiting)
+    expect(prevLevel(waiting, structure, T0)).toEqual(waiting)
+  })
+
+  it('レイトレジ締め切りまでは全項目分の合計', () => {
+    // マーカー(index 2)まで = L1(20) + L2(20)
+    expect(lateRegStatus(waiting, lateRegStructure, T0)).toEqual({
+      kind: 'open',
+      msUntilClose: 40 * MIN,
+    })
+  })
+})
+
 describe('レイトレジ締め切りマーカー(時間なし項目)', () => {
   it('自動遷移はマーカーを即座に通過する', () => {
     const state = startTimer(T0)

@@ -99,13 +99,13 @@ describe('configs ストア', () => {
 describe('session ストア', () => {
   const session: SessionState = {
     configId: 'a',
+    channelId: 'test-channel-id',
     timer: { status: 'running', levelIndex: 0, levelStartedAt: 1_700_000_000_000 },
     histories: [
       { id: 1, command: 'entry', chip: 25000 },
       { id: 2, command: 'bust' },
     ],
     nextHistoryId: 3,
-    titleOverride: null,
   }
 
   it('保存したスナップショットを復元できる', async () => {
@@ -204,5 +204,25 @@ describe('v3 マイグレーション(設定のスリム化)', () => {
     })
     const session = await loadSession()
     expect(session?.timer).toEqual({ status: 'running', levelIndex: 2, levelStartedAt: 1000 })
+  })
+
+  it('v4: セッションの titleOverride を取り除き channelId を補う', async () => {
+    await createLegacyDB(3, (_db, tx) => {
+      tx.objectStore('configs').put(makeConfig('a', 1000))
+      tx.objectStore('session').put(
+        {
+          configId: 'a',
+          timer: { status: 'paused', levelIndex: 0, elapsedInLevelMs: 60_000 },
+          histories: [],
+          nextHistoryId: 1,
+          titleOverride: '上書きタイトル',
+        },
+        'current',
+      )
+    })
+    const session = await loadSession()
+    expect(session).not.toHaveProperty('titleOverride')
+    expect(session?.channelId).toBe('')
+    expect(session?.timer).toEqual({ status: 'paused', levelIndex: 0, elapsedInLevelMs: 60_000 })
   })
 })

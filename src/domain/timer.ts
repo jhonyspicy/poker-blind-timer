@@ -43,10 +43,13 @@ export function resolveTimer(
   }
 }
 
-/** 現在レベルの残り時間(ms)。finished は 0 */
+/** 現在レベルの残り時間(ms)。finished は 0、waiting は最初の項目の持ち時間 */
 export function remainingMs(state: TimerState, structure: StructureItem[], now: number): number {
   const resolved = resolveTimer(state, structure, now)
   if (resolved.status === 'finished') return 0
+  if (resolved.status === 'waiting') {
+    return structure.length > 0 ? durationMs(structure[0]) : 0
+  }
   const duration = durationMs(structure[resolved.levelIndex])
   if (resolved.status === 'paused') {
     return Math.max(0, duration - resolved.elapsedInLevelMs)
@@ -73,10 +76,10 @@ export function resumeTimer(state: TimerState, now: number): TimerState {
   }
 }
 
-/** 次のレベルへ手動で進む。一時停止中は一時停止のまま次レベルの先頭に移る */
+/** 次のレベルへ手動で進む。一時停止中は一時停止のまま次レベルの先頭に移る。開始前は何もしない */
 export function nextLevel(state: TimerState, structure: StructureItem[], now: number): TimerState {
   const resolved = resolveTimer(state, structure, now)
-  if (resolved.status === 'finished') return resolved
+  if (resolved.status === 'finished' || resolved.status === 'waiting') return resolved
   // 時間を持たないマーカーには停止できないので飛ばす
   let nextIndex = resolved.levelIndex + 1
   while (structure[nextIndex]?.kind === 'lateRegClose') nextIndex += 1
@@ -86,10 +89,11 @@ export function nextLevel(state: TimerState, structure: StructureItem[], now: nu
     : { status: 'running', levelIndex: nextIndex, levelStartedAt: now }
 }
 
-/** 前のレベルへ手動で戻る。finished からは最終レベルの先頭に戻る */
+/** 前のレベルへ手動で戻る。finished からは最終レベルの先頭に戻る。開始前は何もしない */
 export function prevLevel(state: TimerState, structure: StructureItem[], now: number): TimerState {
   if (structure.length === 0) return { status: 'finished' }
   const resolved = resolveTimer(state, structure, now)
+  if (resolved.status === 'waiting') return resolved
   const from = resolved.status === 'finished' ? structure.length : resolved.levelIndex
   // 時間を持たないマーカーには停止できないので飛ばす
   let prevIndex = from - 1
@@ -106,18 +110,18 @@ export function prevLevel(state: TimerState, structure: StructureItem[], now: nu
 /** 現在ストラクチャー上のブレイク中かどうか */
 export function isOnBreak(state: TimerState, structure: StructureItem[], now: number): boolean {
   const resolved = resolveTimer(state, structure, now)
-  if (resolved.status === 'finished') return false
+  if (resolved.status === 'finished' || resolved.status === 'waiting') return false
   return structure[resolved.levelIndex]?.kind === 'break'
 }
 
-/** 現在のブラインドレベル番号(1 始まり、ブレイクは数えない)。finished は null */
+/** 現在のブラインドレベル番号(1 始まり、ブレイクは数えない)。finished / waiting は null */
 export function currentBlindLevelNumber(
   state: TimerState,
   structure: StructureItem[],
   now: number,
 ): number | null {
   const resolved = resolveTimer(state, structure, now)
-  if (resolved.status === 'finished') return null
+  if (resolved.status === 'finished' || resolved.status === 'waiting') return null
   let count = 0
   for (let i = 0; i <= resolved.levelIndex; i++) {
     if (structure[i]?.kind === 'blind') count += 1
@@ -132,7 +136,7 @@ export function nextBlindLevel(
   now: number,
 ): StructureItem | null {
   const resolved = resolveTimer(state, structure, now)
-  if (resolved.status === 'finished') return null
+  if (resolved.status === 'finished' || resolved.status === 'waiting') return null
   for (let i = resolved.levelIndex + 1; i < structure.length; i++) {
     if (structure[i].kind === 'blind') return structure[i]
   }
@@ -149,7 +153,7 @@ export function msUntilNextBreak(
   now: number,
 ): number | null {
   const resolved = resolveTimer(state, structure, now)
-  if (resolved.status === 'finished') return null
+  if (resolved.status === 'finished' || resolved.status === 'waiting') return null
   if (structure[resolved.levelIndex]?.kind === 'break') return null
   let total = remainingMs(resolved, structure, now)
   for (let i = resolved.levelIndex + 1; i < structure.length; i++) {
@@ -175,6 +179,12 @@ export function lateRegStatus(
   if (closeIndex === -1) return { kind: 'none' }
   const resolved = resolveTimer(state, structure, now)
   if (resolved.status === 'finished') return { kind: 'closed' }
+  if (resolved.status === 'waiting') {
+    // 開始前は締め切りまでの全項目分
+    let total = 0
+    for (let i = 0; i < closeIndex; i++) total += durationMs(structure[i])
+    return { kind: 'open', msUntilClose: total }
+  }
   if (resolved.levelIndex >= closeIndex) return { kind: 'closed' }
   let total = remainingMs(resolved, structure, now)
   for (let i = resolved.levelIndex + 1; i < closeIndex; i++) {

@@ -77,16 +77,20 @@ async function createTokenRequest(
   const [keyName, keySecret] = apiKey.split(':')
   if (!keyName || !keySecret) throw new Error('ABLY_API_KEY is malformed')
 
-  const capability = JSON.stringify({ [channelName(channelId)]: ['publish', 'subscribe'] })
+  // presence はリモコン接続の検知(入室の宣言と購読)に使う
+  const capability = JSON.stringify({
+    [channelName(channelId)]: ['publish', 'subscribe', 'presence'],
+  })
   const timestamp = Date.now()
   const nonce = base64urlEncode(crypto.getRandomValues(new Uint8Array(12)))
 
-  // clientId は使わない。署名テキスト上は空文字として扱い、TokenRequest には含めない
-  // (空文字の clientId を含めると Ably が 40012 で拒否する)
-  const signText = `${keyName}\n${TOKEN_TTL_MS}\n${capability}\n\n${timestamp}\n${nonce}\n`
+  // clientId はワイルドカード。presence への入室にはクライアントが clientId を
+  // 名乗る必要があり、'*' はどの clientId でも許可する(空文字は Ably が 40012 で拒否)
+  const clientId = '*'
+  const signText = `${keyName}\n${TOKEN_TTL_MS}\n${capability}\n${clientId}\n${timestamp}\n${nonce}\n`
   const mac = await hmacSha256Base64(keySecret, signText)
 
-  return { keyName, ttl: TOKEN_TTL_MS, capability, timestamp, nonce, mac }
+  return { keyName, ttl: TOKEN_TTL_MS, capability, clientId, timestamp, nonce, mac }
 }
 
 export default {

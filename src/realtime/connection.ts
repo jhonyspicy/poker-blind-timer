@@ -28,11 +28,13 @@ export function ablyChannelName(channelId: string): string {
 /**
  * トークン認証(authUrl)で Ably Realtime クライアントを作る。
  * API キーはフロントに存在せず、Worker が対象チャンネル限定のトークンを発行する。
+ * presence へ入室する側(リモコン)は clientId を名乗る必要がある
  */
-export function createRealtimeClient(channelId: string): Ably.Realtime {
+export function createRealtimeClient(channelId: string, clientId?: string): Ably.Realtime {
   return new Ably.Realtime({
     authUrl: `${PAIRING_API_URL}/token`,
     authParams: { ch: channelId },
     authMethod: 'GET',
+    ...(clientId ? { clientId } : {}),
   })
 }

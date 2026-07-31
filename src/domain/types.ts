@@ -60,6 +60,10 @@ export interface HistoryEntry {
 
 export type TimerState =
   | {
+      /** 開始前(待機画面)。リモコンの START までタイマーは進行しない */
+      status: 'waiting'
+    }
+  | {
       status: 'running'
       levelIndex: number
       /** 現在レベルの開始基準時刻(エポック ms)。残り時間は now との差分から算出する */
@@ -76,12 +80,12 @@ export type TimerState =
 /** 進行中トーナメントのスナップショット。IndexedDB に保存しリロード時に復元する */
 export interface SessionState {
   configId: string
+  /** ペアリングに使用する Ably チャンネル ID。サイネージのリロード時の再接続に使う */
+  channelId: string
   timer: TimerState
   histories: HistoryEntry[]
   /** 次に採番する履歴 id */
   nextHistoryId: number
-  /** リモコンからのタイトル変更(TITLE_UPDATE)の上書き値 */
-  titleOverride: string | null
 }
 
 export interface TournamentStats {

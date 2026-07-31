@@ -10,7 +10,10 @@ export function buildSnapshot(
   now: number,
 ): StateSnapshot {
   const timer = resolveTimer(session.timer, config.structure, now)
-  const currentItem = timer.status === 'finished' ? null : config.structure[timer.levelIndex]
+  const currentItem =
+    timer.status === 'running' || timer.status === 'paused'
+      ? config.structure[timer.levelIndex]
+      : null
   const blind = currentItem?.kind === 'blind' ? currentItem : null
   return {
     publishedAt: now,
@@ -19,7 +22,7 @@ export function buildSnapshot(
     levelNumber: currentBlindLevelNumber(timer, config.structure, now),
     blind: blind ? { sb: blind.sb, bb: blind.bb, ante: blind.ante } : null,
     remainingMs: remainingMs(timer, config.structure, now),
-    title: session.titleOverride ?? config.title,
+    title: config.title,
     histories: session.histories,
     stats: deriveStats(session.histories),
   }
