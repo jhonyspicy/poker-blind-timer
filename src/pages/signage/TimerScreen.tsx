@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { formatChips, formatClock } from '../../domain/format'
 import {
   currentBlindLevelNumber,
-  durationMs,
   lateRegStatus,
   msUntilNextBreak,
   nextBlindLevel,
   remainingMs,
 } from '../../domain/timer'
 import type { TimerState, TournamentConfig, TournamentStats } from '../../domain/types'
+import TabularNumber from './TabularNumber'
 import TimerBackground, { type TimerBackgroundHandle } from './TimerBackground'
 import styles from './TimerScreen.module.css'
 
@@ -80,16 +80,6 @@ function rankLabel(place: number): string {
   return `${place}${suffix}`
 }
 
-interface RingFx {
-  fill: number
-  glow: number
-  glowTarget: number
-  sweepStart: number
-  refillAt: number
-  /** 演出中は実際の残量に追従させず、演出前の値で固定する */
-  freeze: boolean
-}
-
 interface PauseFxState {
   mode: 'off' | 'in' | 'hold' | 'out'
   t0: number
@@ -127,16 +117,7 @@ export default function TimerScreen({
   )
   const [fx, setFx] = useState<LevelUpFx | null>(null)
   const bgRef = useRef<TimerBackgroundHandle | null>(null)
-  const ringCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const pauseCanvasRef = useRef<HTMLCanvasElement | null>(null)
-  const ringRef = useRef<RingFx>({
-    fill: 1,
-    glow: 0,
-    glowTarget: 0.15,
-    sweepStart: 0,
-    refillAt: 0,
-    freeze: false,
-  })
   const pauseFxRef = useRef<PauseFxState>({
     mode: 'off',
     t0: 0,
@@ -156,7 +137,6 @@ export default function TimerScreen({
   const currentItem = structure[levelIndex]
   const currentBlind = currentItem?.kind === 'blind' ? currentItem : null
   const remaining = remainingMs(timer, structure, now)
-  const duration = currentItem ? durationMs(currentItem) : 1
   const levelText = String(currentBlindLevelNumber(timer, structure, now) ?? '-')
   const blindsText = currentBlind
     ? `${formatChips(currentBlind.sb)} / ${formatChips(currentBlind.bb)}`
@@ -185,8 +165,7 @@ export default function TimerScreen({
   const prizeListRef = useRef<HTMLDivElement | null>(null)
   const [prizeOverflow, setPrizeOverflow] = useState(false)
 
-  // 現在値を保持(レベルアップ演出の「旧値」に使う)。ゲージの残量も毎レンダー更新する
-  // (演出中の freeze 時は refill 前にゲージが跳ねないよう固定)
+  // 現在値を保持(レベルアップ演出の「旧値」に使う)
   const displayRef = useRef({
     level: levelText,
     blinds: blindsText,
@@ -196,9 +175,6 @@ export default function TimerScreen({
   useEffect(() => {
     if (!fx) {
       displayRef.current = { level: levelText, blinds: blindsText, ante: anteText, next: nextNode }
-    }
-    if (!ringRef.current.freeze) {
-      ringRef.current.fill = Math.max(0, Math.min(1, duration > 0 ? remaining / duration : 0))
     }
   })
 
@@ -230,7 +206,6 @@ export default function TimerScreen({
     const t = (ms: number, fn: () => void) => {
       fxTimeouts.current.push(window.setTimeout(fn, ms))
     }
-    const R = ringRef.current
     if (reducedMotion) {
       setFx({
         from,
@@ -242,17 +217,10 @@ export default function TimerScreen({
         dimmed: true,
         noTrans: true,
       })
-      t(900, () => {
-        R.freeze = false
-        R.refillAt = performance.now() - 9999
-        setFx((p) => p && { ...p, levelUpVisible: false, timerHidden: false })
-      })
+      t(900, () => setFx((p) => p && { ...p, levelUpVisible: false, timerHidden: false }))
       t(1500, () => setFx(null))
       return
     }
-    R.freeze = true
-    R.fill = 0
-    R.glowTarget = 1
     bgRef.current?.levelUp()
     setFx({
       from,
@@ -264,22 +232,12 @@ export default function TimerScreen({
       dimmed: true,
       noTrans: false,
     })
-    t(100, () => {
-      R.sweepStart = performance.now()
-    })
     t(500, () => setFx((p) => p && { ...p, levelUpVisible: true, rollLevel: true }))
     t(750, () => setFx((p) => p && { ...p, rollBlinds: true }))
     t(1000, () => setFx((p) => p && { ...p, rollNext: true }))
     t(1500, () => setFx((p) => p && { ...p, levelUpVisible: false }))
-    t(1750, () => {
-      R.freeze = false
-      R.refillAt = performance.now()
-      setFx((p) => p && { ...p, timerHidden: false })
-    })
-    t(2250, () => {
-      R.glowTarget = 0.15
-      setFx((p) => p && { ...p, dimmed: false })
-    })
+    t(1750, () => setFx((p) => p && { ...p, timerHidden: false }))
+    t(2250, () => setFx((p) => p && { ...p, dimmed: false }))
     t(3100, () => setFx(null))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [levelIndex])
@@ -302,119 +260,15 @@ export default function TimerScreen({
     }
   }, [paused])
 
-  // ---- Canvas 描画ループ(円形ゲージ + 一時停止テープ) ----
+  // ---- Canvas 描画ループ(一時停止テープ) ----
   useEffect(() => {
-    const ringCanvas = ringCanvasRef.current
     const pauseCanvas = pauseCanvasRef.current
-    if (!ringCanvas || !pauseCanvas) return
-    const dpr = Math.min(devicePixelRatio || 1, 2)
-    ringCanvas.width = 808 * dpr
-    ringCanvas.height = 808 * dpr
-    const rctx = ringCanvas.getContext('2d')!
+    if (!pauseCanvas) return
     const pdpr = Math.min(devicePixelRatio || 1, 1.5)
     pauseCanvas.width = 1920 * pdpr
     pauseCanvas.height = 1080 * pdpr
     const pctx = pauseCanvas.getContext('2d')!
     const rm = matchMedia('(prefers-reduced-motion: reduce)').matches
-
-    // 円周に沿ったダッシュ(長さに揺らぎ)。上部 ±15° は LEVEL バッジ用ギャップ
-    const segs: { a0: number; a1: number; mid: number }[] = []
-    {
-      let a = 15
-      let seed = 11
-      const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647
-      while (a < 345 - 4) {
-        const len = 4.5 + rand() * 7
-        const end = Math.min(a + len, 345)
-        segs.push({ a0: a, a1: end, mid: (a + end) / 2 })
-        a = end + 3.2
-      }
-    }
-
-    const drawRing = (nowMs: number) => {
-      const R = ringRef.current
-      const cx = 404
-      const cy = 404
-      const rad = 332
-      R.glow += (R.glowTarget - R.glow) * 0.07
-      rctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      rctx.clearRect(0, 0, 808, 808)
-
-      const N = segs.length
-      for (let i = 0; i < N; i++) {
-        const sg = segs[i]
-        const frac = sg.mid / 360
-        let g = frac <= R.fill + 1e-6 ? 1 : 0
-        if (R.refillAt) {
-          const t0 = R.refillAt + (i * 700) / N
-          g = Math.max(g, Math.min(1, Math.max(0, (nowMs - t0) / 220)))
-        }
-        const dist = Math.min(sg.mid, 360 - sg.mid) / 180
-        const lw = 21 - 10 * Math.pow(dist, 1.3)
-        const alpha = 1 - 0.5 * Math.pow(dist, 1.6)
-        const am = ((sg.mid - 90) * Math.PI) / 180
-        const x0 = cx + Math.cos(am) * (rad - lw / 2)
-        const y0 = cy + Math.sin(am) * (rad - lw / 2)
-        const x1 = cx + Math.cos(am) * (rad + lw / 2)
-        const y1 = cy + Math.sin(am) * (rad + lw / 2)
-        const grad = rctx.createLinearGradient(x1, y1, x0, y0)
-        if (g > 0) {
-          const mix = (c1: number[], c2: number[]) =>
-            c1.map((v, k) => Math.round(v + (c2[k] - v) * g))
-          grad.addColorStop(0, `rgb(${mix([90, 162, 232], [255, 232, 163]).join(',')})`)
-          grad.addColorStop(1, `rgb(${mix([27, 79, 140], [224, 157, 34]).join(',')})`)
-        } else {
-          grad.addColorStop(0, '#5aa2e8')
-          grad.addColorStop(1, '#1e5c9e')
-        }
-        rctx.save()
-        rctx.globalAlpha = g > 0 ? alpha : alpha * 0.85
-        rctx.strokeStyle = grad
-        rctx.lineWidth = lw
-        rctx.lineCap = 'butt'
-        if (g > 0.5) {
-          rctx.shadowColor = `rgba(244,190,70,${0.45 + R.glow * 0.45})`
-          rctx.shadowBlur = 14 + R.glow * 18
-        }
-        rctx.beginPath()
-        rctx.arc(cx, cy, rad, ((sg.a0 - 90) * Math.PI) / 180, ((sg.a1 - 90) * Math.PI) / 180)
-        rctx.stroke()
-        rctx.restore()
-      }
-
-      // 掃引光: 加算合成のコメット(残光つき・1 回転)
-      if (R.sweepStart) {
-        const dur = 900
-        const p = (nowMs - R.sweepStart) / dur
-        if (p <= 1.15) {
-          const headDeg = -90 + Math.min(p, 1) * 360
-          const fade = p > 1 ? 1 - (p - 1) / 0.15 : 1
-          rctx.save()
-          rctx.globalCompositeOperation = 'lighter'
-          const TAIL = 100
-          const SEG = 46
-          const half = 14
-          for (let k = 0; k < SEG; k++) {
-            const dd = headDeg - (k / SEG) * TAIL
-            if (dd < -90) continue
-            const aa = (dd * Math.PI) / 180
-            const fall = Math.pow(1 - k / SEG, 2.2) * fade
-            rctx.strokeStyle = `rgba(255,226,150,${0.5 * fall})`
-            rctx.lineWidth = 8 * (0.35 + 0.65 * (1 - k / SEG))
-            rctx.lineCap = 'round'
-            if (k === 0) {
-              rctx.shadowColor = 'rgba(255,235,180,.9)'
-              rctx.shadowBlur = 26
-            } else rctx.shadowBlur = 0
-            rctx.beginPath()
-            rctx.moveTo(cx + Math.cos(aa) * (rad - half - 4), cy + Math.sin(aa) * (rad - half - 4))
-            rctx.lineTo(cx + Math.cos(aa) * (rad + half + 4), cy + Math.sin(aa) * (rad + half + 4))
-            rctx.stroke()
-          }
-          rctx.restore()
-        } else R.sweepStart = 0
-      }
-    }
 
     // ---- 一時停止テープ ----
     const drawTapeBody = (
@@ -668,7 +522,6 @@ export default function TimerScreen({
 
     let rafId: number
     const loop = (t: number) => {
-      drawRing(t)
       drawPause(t)
       rafId = requestAnimationFrame(loop)
     }
@@ -709,7 +562,6 @@ export default function TimerScreen({
 
           {/* 中央 */}
           <div className={styles.center}>
-            <canvas ref={ringCanvasRef} className={styles.ringCanvas} />
             <div className={styles.levelBadgeRow}>
               <div className={styles.levelChevron}>《</div>
               <div className={styles.levelBadge}>
@@ -727,7 +579,7 @@ export default function TimerScreen({
             </div>
             <div className={styles.timerArea}>
               <div className={styles.time} style={timeStyle}>
-                {timeText}
+                <TabularNumber text={timeText} />
               </div>
               <div className={styles.levelUpText} style={{ opacity: fx?.levelUpVisible ? 1 : 0 }}>
                 LEVEL UP
@@ -800,7 +652,7 @@ export default function TimerScreen({
             <div className={styles.breakCard}>
               <div className={styles.breakLabel}>NEXT BREAK</div>
               <div className={styles.breakValue}>
-                {breakMs === null ? '--:--' : formatClock(breakMs)}
+                <TabularNumber text={breakMs === null ? '--:--' : formatClock(breakMs)} />
               </div>
               <div className={styles.breakFooter}>
                 <div className={styles.breakTimeLabel}>BREAK TIME</div>
@@ -815,11 +667,15 @@ export default function TimerScreen({
                 {lateReg.kind === 'open' && <div className={styles.lateRegEndsIn}>Ends in</div>}
               </div>
               <div className={styles.lateRegValue}>
-                {lateReg.kind === 'none'
-                  ? '--:--'
-                  : lateReg.kind === 'closed'
-                    ? 'CLOSED'
-                    : formatClock(lateReg.msUntilClose)}
+                <TabularNumber
+                  text={
+                    lateReg.kind === 'none'
+                      ? '--:--'
+                      : lateReg.kind === 'closed'
+                        ? 'CLOSED'
+                        : formatClock(lateReg.msUntilClose)
+                  }
+                />
               </div>
             </div>
           </div>
