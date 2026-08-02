@@ -38,8 +38,16 @@ export interface SignageData {
   phase: SignagePhase
   /** 再生中の演出動画イベント。null なら非表示 */
   overlayEvent: VideoEvent | null
-  onOverlayDone: () => void
+  onOverlayDone: (event: VideoEvent) => void
+  onOverlayStarted: (event: VideoEvent) => void
 }
+
+/** 開始演出の再生開始からタイマー画面へ遷移するまでの時間 */
+const START_SCREEN_DELAY_MS = 7_000
+/** 開始演出の再生開始からタイマーが動き出すまでの時間 */
+const START_TIMER_DELAY_MS = 8_000
+/** 優勝演出の再生開始から優勝画面へ遷移するまでの時間 */
+const CHAMPION_SCREEN_DELAY_MS = 7_000
 
 export type SignageControllerState = 'loading' | 'no-session' | SignageData
 
@@ -69,6 +77,13 @@ export function useSignageController(): SignageControllerState {
   const processedRequestIds = useRef(new Set<string>())
   const prevLevelIndexRef = useRef<number | null>(null)
   const warnedLevelRef = useRef<number | null>(null)
+  /** START 受信済みで開始演出~タイマー起動待ちの間 true(START の二重処理防止) */
+  const startPendingRef = useRef(false)
+  const startTimeouts = useRef<number[]>([])
+  /** 開始演出の途中(再生開始+7 秒)からタイマー画面を先に見せるためのフラグ */
+  const [earlyTimerScreen, setEarlyTimerScreen] = useState(false)
+  /** 優勝演出の再生開始+7 秒まで優勝画面への遷移を保留するフラグ */
+  const [championHold, setChampionHold] = useState(false)
 
   // ---- 初期読み込み ----
   useEffect(() => {
@@ -123,6 +138,8 @@ export function useSignageController(): SignageControllerState {
     const fire = (event: VideoEvent) => {
       if (played.has(event)) return
       played.add(event)
+      // 優勝画面は演出の再生開始+7 秒まで保留する(再生できなければ演出終了時に解除)
+      if (event === 'champion') setChampionHold(true)
       setOverlayQueue((queue) => [...queue, event])
     }
     if (
@@ -150,8 +167,10 @@ export function useSignageController(): SignageControllerState {
       let next: SessionState | null = null
       switch (command.type) {
         case 'START':
-          if (current.timer.status === 'waiting') {
-            next = { ...current, timer: startTimer(nowMs) }
+          // タイマーはここでは開始しない。開始演出の再生開始から 8 秒後に起動する
+          // (素材が無い場合は演出スキップ時に即起動する)
+          if (current.timer.status === 'waiting' && !startPendingRef.current) {
+            startPendingRef.current = true
             setOverlayQueue((queue) => [...queue, 'tournament-start'])
           }
           break
@@ -281,9 +300,51 @@ export function useSignageController(): SignageControllerState {
     return () => window.clearInterval(id)
   }, [loaded, commitSession])
 
-  const onOverlayDone = useCallback(() => {
-    setOverlayQueue((queue) => queue.slice(1))
-  }, [])
+  // ---- トーナメント開始(開始演出との同期) ----
+  const startTournamentIfWaiting = useCallback(() => {
+    const current = sessionRef.current
+    const cfg = configRef.current
+    startPendingRef.current = false
+    if (!current || !cfg || current.timer.status !== 'waiting') return
+    commitSession(applyMilestones({ ...current, timer: startTimer(Date.now()) }, cfg))
+  }, [applyMilestones, commitSession])
+
+  const onOverlayStarted = useCallback(
+    (event: VideoEvent) => {
+      if (event === 'tournament-start') {
+        // 再生開始から 7 秒でタイマー画面へ切り替え、8 秒でタイマーを起動する
+        startTimeouts.current.push(
+          window.setTimeout(() => setEarlyTimerScreen(true), START_SCREEN_DELAY_MS),
+        )
+        startTimeouts.current.push(
+          window.setTimeout(startTournamentIfWaiting, START_TIMER_DELAY_MS),
+        )
+      } else if (event === 'champion') {
+        // 再生開始から 7 秒で優勝画面へ切り替える
+        startTimeouts.current.push(
+          window.setTimeout(() => setChampionHold(false), CHAMPION_SCREEN_DELAY_MS),
+        )
+      }
+    },
+    [startTournamentIfWaiting],
+  )
+
+  const onOverlayDone = useCallback(
+    (event: VideoEvent) => {
+      // 素材未配置・再生失敗・短い動画でも、タイマー起動と優勝画面遷移が必ず行われるようにする
+      if (event === 'tournament-start') startTournamentIfWaiting()
+      if (event === 'champion') setChampionHold(false)
+      setOverlayQueue((queue) => queue.slice(1))
+    },
+    [startTournamentIfWaiting],
+  )
+
+  useEffect(
+    () => () => {
+      startTimeouts.current.forEach(clearTimeout)
+    },
+    [],
+  )
 
   if (loaded === 'loading') return 'loading'
   if (loaded === 'no-session' || !session || !config) return 'no-session'
@@ -293,13 +354,17 @@ export function useSignageController(): SignageControllerState {
   const onBreak =
     (resolved.status === 'running' || resolved.status === 'paused') &&
     config.structure[resolved.levelIndex]?.kind === 'break'
-  const phase: SignagePhase = isChampionDecided(stats)
-    ? 'champion'
-    : resolved.status === 'waiting'
-      ? 'waiting'
-      : onBreak
-        ? 'break'
-        : 'timer'
+  // 優勝確定でも championHold の間(優勝演出の再生開始+7 秒まで)は元の画面に留まる
+  const phase: SignagePhase =
+    isChampionDecided(stats) && !championHold
+      ? 'champion'
+      : resolved.status === 'waiting'
+        ? earlyTimerScreen
+          ? 'timer'
+          : 'waiting'
+        : onBreak
+          ? 'break'
+          : 'timer'
 
   return {
     session,
@@ -309,5 +374,6 @@ export function useSignageController(): SignageControllerState {
     phase,
     overlayEvent: overlayQueue[0] ?? null,
     onOverlayDone,
+    onOverlayStarted,
   }
 }

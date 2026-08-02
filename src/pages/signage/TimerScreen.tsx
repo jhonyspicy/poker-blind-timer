@@ -154,12 +154,18 @@ export default function TimerScreen({
   const currentItem = structure[levelIndex]
   const currentBlind = currentItem?.kind === 'blind' ? currentItem : null
   const remaining = remainingMs(timer, structure, now)
-  const levelText = String(currentBlindLevelNumber(timer, structure, now) ?? '-')
+  // 開始前(waiting)は開始演出の途中でこの画面を先に見せるため、レベル 1 の内容で表示する
+  const waitingPreview = timer.status === 'waiting'
+  const levelText = String(
+    currentBlindLevelNumber(timer, structure, now) ?? (waitingPreview && currentBlind ? 1 : '-'),
+  )
   const blindsText = currentBlind
     ? `${formatChips(currentBlind.sb)} / ${formatChips(currentBlind.bb)}`
     : '-'
   const anteText = currentBlind ? formatChips(currentBlind.ante) : '-'
-  const next = nextBlindLevel(timer, structure, now)
+  const next = waitingPreview
+    ? (structure.filter((item) => item.kind === 'blind')[1] ?? null)
+    : nextBlindLevel(timer, structure, now)
   const nextNode: ReactNode =
     next && next.kind === 'blind' ? (
       <>

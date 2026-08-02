@@ -70,6 +70,7 @@ export default function SignagePage() {
           key={state.overlayEvent}
           event={state.overlayEvent}
           onDone={state.onOverlayDone}
+          onStarted={state.onOverlayStarted}
         />
       )}
     </>
