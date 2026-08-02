@@ -1,0 +1,291 @@
+/* リモコン画面。スマホ縦持ち・片手操作前提(トークンは src/index.css で共通定義) */
+
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+}
+
+.container {
+  width: 100%;
+  max-width: 480px;
+  padding: 12px 16px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* — 接続状態ヘッダー — */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+}
+
+.statusDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotConnected {
+  composes: statusDot;
+  background: #6fcf7c;
+}
+
+.dotDisconnected {
+  composes: statusDot;
+  background: var(--danger);
+}
+
+.dotConnecting {
+  composes: statusDot;
+  background: var(--muted);
+}
+
+.headerTitle {
+  font-size: 15px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.headerStatus {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+/* — 現在状態カード — */
+.stateCard {
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stateLevel {
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.stateTime {
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.statePaused {
+  color: var(--muted);
+}
+
+.stateBlinds {
+  font-size: 18px;
+  color: var(--text);
+}
+
+.stateStats {
+  margin-top: 6px;
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.pausedBadge {
+  margin-top: 6px;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: #f2cf62;
+  border: 1px solid rgba(247, 200, 30, 0.5);
+  border-radius: 6px;
+  padding: 3px 10px;
+}
+
+/* — ボタン共通 — */
+.btn {
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: 12px;
+  min-height: 56px;
+  padding: 8px 12px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.btn:active {
+  background: color-mix(in srgb, var(--text) 14%, var(--surface));
+}
+
+.btn:disabled {
+  opacity: 0.4;
+}
+
+.btnPrimary {
+  composes: btn;
+  color: #1a1408;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.btnStart {
+  composes: btnPrimary;
+  min-height: 72px;
+  font-size: 20px;
+}
+
+/* — セクション — */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionLabel {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.chipRow {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 10px;
+}
+
+.chipInput {
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: right;
+  color: var(--text);
+  caret-color: var(--accent);
+  background: var(--bg);
+  border: 1px solid var(--divider);
+  border-radius: 12px;
+  min-height: 56px;
+  padding: 8px 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.chipInput:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.pairGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* — 履歴 — */
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.historyRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 15px;
+}
+
+.historyId {
+  color: var(--muted);
+  font-size: 12px;
+  width: 34px;
+  flex-shrink: 0;
+}
+
+.historyKind {
+  width: 76px;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.historyKindBust {
+  composes: historyKind;
+  color: var(--danger);
+}
+
+.historyChip {
+  flex: 1;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.historySmallBtn {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.historyDeleteBtn {
+  composes: historySmallBtn;
+  color: var(--neutral-400);
+}
+
+.historyEditRow {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0 2px;
+}
+
+.historyEditInput {
+  composes: chipInput;
+  min-height: 44px;
+  font-size: 16px;
+}
+
+.historyEmpty {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  padding: 8px 0;
+}
+
+.notice {
+  font-size: 14px;
+  color: var(--muted);
+  text-align: center;
+  padding: 24px 0;
+}
+
+.backLink {
+  text-align: center;
+  font-size: 13px;
+}
+
+.backLink a {
+  color: var(--muted);
+}

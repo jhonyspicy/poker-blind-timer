@@ -1,42 +1,23 @@
 import { Link } from 'react-router'
-import type { TournamentConfig } from '../../domain/types'
 import BreakScreen from './BreakScreen'
+import ChampionScreen from './ChampionScreen'
 import TimerScreen from './TimerScreen'
 import { useSignageController, type SignageData } from './useSignageController'
 import VideoOverlay from './VideoOverlay'
 import WaitingScreen from './WaitingScreen'
 import { deriveStats } from '../../domain/stats'
 
-/** 優勝画面(デザイン未作成のためプレースホルダー) */
-function ChampionPlaceholder({ config }: { config: TournamentConfig }) {
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: '#050403',
-        display: 'grid',
-        placeItems: 'center',
-        color: '#e8c15a',
-        fontFamily: "'Noto Sans JP', sans-serif",
-        textAlign: 'center',
-      }}
-    >
-      <div>
-        <div style={{ fontFamily: 'Oswald, sans-serif', fontSize: '8vw', fontWeight: 600 }}>
-          WINNER!
-        </div>
-        <div style={{ fontSize: '3vw', fontWeight: 700, color: '#fff' }}>{config.title}</div>
-      </div>
-    </div>
-  )
-}
-
 function SignageBody({ data }: { data: SignageData }) {
   const { config, session, roomName, now, phase } = data
   switch (phase) {
     case 'waiting':
-      return <WaitingScreen storeName={roomName} config={config} />
+      return (
+        <WaitingScreen
+          storeName={roomName}
+          config={config}
+          stats={deriveStats(session.histories)}
+        />
+      )
     case 'break':
       return (
         <BreakScreen
@@ -47,7 +28,7 @@ function SignageBody({ data }: { data: SignageData }) {
         />
       )
     case 'champion':
-      return <ChampionPlaceholder config={config} />
+      return <ChampionScreen storeName={roomName} config={config} />
     default:
       return (
         <TimerScreen

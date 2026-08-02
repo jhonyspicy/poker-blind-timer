@@ -18,35 +18,56 @@ import styles from './TimerScreen.module.css'
  * レベルアップ演出・一時停止テープ演出を含む
  */
 
+/** レベルアップ演出で表示する値のセット */
+interface DisplayVals {
+  level: string
+  blinds: string
+  ante: string
+  next: ReactNode
+}
+
 /** レベルアップ演出中の表示状態。null なら通常表示 */
 interface LevelUpFx {
-  from: { level: string; blinds: string; ante: string; next: ReactNode }
+  /** トリガー識別子(levelIndex)。変わるたびに演出タイムラインを開始する */
+  key: number
+  from: DisplayVals
   rollLevel: boolean
   rollBlinds: boolean
   rollNext: boolean
   levelUpVisible: boolean
   timerHidden: boolean
   dimmed: boolean
-  /** 終了直後にロールを瞬時に巻き戻すためのフラグ */
-  noTrans: boolean
 }
 
-/** 縦スライドで値が切り替わる表示(演出中は旧値→新値へロール) */
+/**
+ * 縦スライドで値が切り替わる表示。
+ * 演出中(from あり)は「旧値が上へスライドアウトし、新値が下からスライドイン」。
+ * 通常時(from = null)はスタックを持たない静的表示にして、
+ * 演出終了時に巻き戻しアニメーションが見えないようにする
+ */
 function Roll({
-  prev,
+  from,
   current,
   rolled,
   height,
-  noTrans,
+  animate,
   className,
 }: {
-  prev: ReactNode
+  from: ReactNode | null
   current: ReactNode
   rolled: boolean
   height: number
-  noTrans: boolean
+  animate: boolean
   className: string
 }) {
+  const line = (value: ReactNode, key: string) => (
+    <div key={key} className={className} style={{ height, lineHeight: `${height}px` }}>
+      {value}
+    </div>
+  )
+  if (from === null) {
+    return <div style={{ height, overflow: 'hidden' }}>{line(current, 'current')}</div>
+  }
   return (
     <div style={{ height, overflow: 'hidden' }}>
       <div
@@ -54,15 +75,11 @@ function Roll({
           display: 'flex',
           flexDirection: 'column',
           transform: `translateY(${rolled ? '-50%' : '0%'})`,
-          transition: noTrans ? 'none' : 'transform 0.55s cubic-bezier(0.33, 0, 0.15, 1)',
+          transition: animate ? 'transform 0.55s cubic-bezier(0.33, 0, 0.15, 1)' : 'none',
         }}
       >
-        <div className={className} style={{ height, lineHeight: `${height}px` }}>
-          {prev}
-        </div>
-        <div className={className} style={{ height, lineHeight: `${height}px` }}>
-          {current}
-        </div>
+        {line(from, 'from')}
+        {line(current, 'current')}
       </div>
     </div>
   )
@@ -165,18 +182,35 @@ export default function TimerScreen({
   const prizeListRef = useRef<HTMLDivElement | null>(null)
   const [prizeOverflow, setPrizeOverflow] = useState(false)
 
-  // 現在値を保持(レベルアップ演出の「旧値」に使う)
-  const displayRef = useRef({
+  // ---- レベルアップ演出のトリガー ----
+  // 直前レベルの表示値を state に保持し、レベルが切り替わった「そのレンダー中」に
+  // 旧値を fx へ確保する。エフェクトで拾うと新値が 1 フレーム見えてしまう
+  // (React 公式の「レンダー中の派生 state 更新」パターン)
+  const currentVals: DisplayVals = {
     level: levelText,
     blinds: blindsText,
     ante: anteText,
     next: nextNode,
+  }
+  const [display, setDisplay] = useState<{ index: number; vals: DisplayVals }>({
+    index: levelIndex,
+    vals: currentVals,
   })
-  useEffect(() => {
-    if (!fx) {
-      displayRef.current = { level: levelText, blinds: blindsText, ante: anteText, next: nextNode }
+  if (display.index !== levelIndex) {
+    if (levelIndex > display.index && structure[levelIndex]?.kind === 'blind') {
+      setFx({
+        key: levelIndex,
+        from: display.vals,
+        rollLevel: false,
+        rollBlinds: false,
+        rollNext: false,
+        levelUpVisible: false,
+        timerHidden: true,
+        dimmed: true,
+      })
     }
-  })
+    setDisplay({ index: levelIndex, vals: currentVals })
+  }
 
   // ---- スケーリング ----
   useEffect(() => {
@@ -195,59 +229,39 @@ export default function TimerScreen({
     return () => ro.disconnect()
   }, [])
 
-  // ---- レベルアップ演出(levelIndex が進んでブラインドに入ったとき) ----
-  const prevIndexRef = useRef<number | null>(null)
+  // ---- レベルアップ演出のタイムライン(fx がセットされたら段階的に進める) ----
+  const fxKey = fx?.key ?? null
   useEffect(() => {
-    const prev = prevIndexRef.current
-    prevIndexRef.current = levelIndex
-    if (prev === null || levelIndex <= prev) return
-    if (structure[levelIndex]?.kind !== 'blind') return
-    const from = displayRef.current
+    if (fxKey === null) return
+    const timeouts = fxTimeouts.current
     const t = (ms: number, fn: () => void) => {
-      fxTimeouts.current.push(window.setTimeout(fn, ms))
+      timeouts.push(window.setTimeout(fn, ms))
     }
     if (reducedMotion) {
-      setFx({
-        from,
-        rollLevel: true,
-        rollBlinds: true,
-        rollNext: true,
-        levelUpVisible: true,
-        timerHidden: true,
-        dimmed: true,
-        noTrans: true,
-      })
+      // モーション低減: ロールなしで LEVEL UP 表示のみ
+      t(0, () =>
+        setFx(
+          (p) =>
+            p && { ...p, levelUpVisible: true, rollLevel: true, rollBlinds: true, rollNext: true },
+        ),
+      )
       t(900, () => setFx((p) => p && { ...p, levelUpVisible: false, timerHidden: false }))
       t(1500, () => setFx(null))
-      return
+    } else {
+      bgRef.current?.levelUp()
+      t(500, () => setFx((p) => p && { ...p, levelUpVisible: true, rollLevel: true }))
+      t(750, () => setFx((p) => p && { ...p, rollBlinds: true }))
+      t(1000, () => setFx((p) => p && { ...p, rollNext: true }))
+      t(1500, () => setFx((p) => p && { ...p, levelUpVisible: false }))
+      t(1750, () => setFx((p) => p && { ...p, timerHidden: false }))
+      t(2250, () => setFx((p) => p && { ...p, dimmed: false }))
+      t(3100, () => setFx(null))
     }
-    bgRef.current?.levelUp()
-    setFx({
-      from,
-      rollLevel: false,
-      rollBlinds: false,
-      rollNext: false,
-      levelUpVisible: false,
-      timerHidden: true,
-      dimmed: true,
-      noTrans: false,
-    })
-    t(500, () => setFx((p) => p && { ...p, levelUpVisible: true, rollLevel: true }))
-    t(750, () => setFx((p) => p && { ...p, rollBlinds: true }))
-    t(1000, () => setFx((p) => p && { ...p, rollNext: true }))
-    t(1500, () => setFx((p) => p && { ...p, levelUpVisible: false }))
-    t(1750, () => setFx((p) => p && { ...p, timerHidden: false }))
-    t(2250, () => setFx((p) => p && { ...p, dimmed: false }))
-    t(3100, () => setFx(null))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [levelIndex])
-
-  useEffect(
-    () => () => {
-      fxTimeouts.current.forEach(clearTimeout)
-    },
-    [],
-  )
+    return () => {
+      timeouts.forEach(clearTimeout)
+      timeouts.length = 0
+    }
+  }, [fxKey, reducedMotion])
 
   // ---- 一時停止テープ演出のトリガ ----
   useEffect(() => {
@@ -567,11 +581,11 @@ export default function TimerScreen({
               <div className={styles.levelBadge}>
                 <div className={styles.levelLabel}>LEVEL</div>
                 <Roll
-                  prev={fx ? fx.from.level : levelText}
+                  from={fx ? fx.from.level : null}
                   current={levelText}
-                  rolled={fx ? fx.rollLevel : false}
+                  rolled={fx?.rollLevel ?? false}
                   height={44}
-                  noTrans={fx?.noTrans ?? false}
+                  animate={!reducedMotion}
                   className={styles.levelValue}
                 />
               </div>
@@ -588,22 +602,22 @@ export default function TimerScreen({
             <div className={styles.blindsLabel}>BLINDS</div>
             <div className={styles.blindsRoll}>
               <Roll
-                prev={fx ? fx.from.blinds : blindsText}
+                from={fx ? fx.from.blinds : null}
                 current={blindsText}
-                rolled={fx ? fx.rollBlinds : false}
+                rolled={fx?.rollBlinds ?? false}
                 height={110}
-                noTrans={fx?.noTrans ?? false}
+                animate={!reducedMotion}
                 className={styles.blindsValue}
               />
             </div>
             <div className={styles.anteRow}>
               <div className={styles.anteLabel}>ANTE</div>
               <Roll
-                prev={fx ? fx.from.ante : anteText}
+                from={fx ? fx.from.ante : null}
                 current={anteText}
-                rolled={fx ? fx.rollBlinds : false}
+                rolled={fx?.rollBlinds ?? false}
                 height={88}
-                noTrans={fx?.noTrans ?? false}
+                animate={!reducedMotion}
                 className={styles.anteValue}
               />
             </div>
@@ -618,11 +632,11 @@ export default function TimerScreen({
             </div>
             <div className={styles.nextRoll}>
               <Roll
-                prev={fx ? fx.from.next : nextNode}
+                from={fx ? fx.from.next : null}
                 current={nextNode}
-                rolled={fx ? fx.rollNext : false}
+                rolled={fx?.rollNext ?? false}
                 height={58}
-                noTrans={fx?.noTrans ?? false}
+                animate={!reducedMotion}
                 className={styles.nextValue}
               />
             </div>

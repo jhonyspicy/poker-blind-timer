@@ -1,0 +1,142 @@
+/* 優勝画面(デザインモック Champion Signage の移植)。
+   16:9 レターボックスに背景画像(public/images/champion.png)を敷き、
+   上部に店名・トーナメント名を金箔文字で重ねる */
+
+.page {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.frame {
+  position: relative;
+  width: min(100vw, 177.7778vh);
+  height: min(56.25vw, 100vh);
+  container-type: size;
+  overflow: hidden;
+  background-color: #000;
+  background-size: cover;
+  background-position: center;
+}
+
+/* 上部の暗幕(文字の可読性確保) */
+.topShade {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 34cqh;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.82),
+    rgba(0, 0, 0, 0.55) 45%,
+    rgba(0, 0, 0, 0.22) 75%,
+    rgba(0, 0, 0, 0)
+  );
+}
+
+.header {
+  position: absolute;
+  top: 2cqh;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1cqh;
+}
+
+/* 縁取りレイヤーと金グラデレイヤーを重ねる 2 層構成 */
+.layered {
+  position: relative;
+  white-space: nowrap;
+}
+
+.venueOutline {
+  position: absolute;
+  inset: 0;
+  font-family: 'Cinzel', 'Noto Serif JP', serif;
+  font-weight: 700;
+  font-size: 7.6cqh;
+  line-height: 1.05;
+  letter-spacing: 0.14em;
+  text-indent: 0.14em;
+  color: #1a0d00;
+  text-shadow:
+    0 0 1.6cqh rgba(0, 0, 0, 1),
+    0 0 3.2cqh rgba(0, 0, 0, 0.95),
+    0 0.3cqh 0.6cqh rgba(0, 0, 0, 1);
+  -webkit-text-stroke: 0.5cqh rgba(10, 6, 0, 0.92);
+}
+
+.venueGold {
+  position: relative;
+  font-family: 'Cinzel', 'Noto Serif JP', serif;
+  font-weight: 700;
+  font-size: 7.6cqh;
+  line-height: 1.05;
+  letter-spacing: 0.14em;
+  text-indent: 0.14em;
+  background-image: linear-gradient(
+    180deg,
+    #fff6d8 0%,
+    #ffd977 34%,
+    #e0a52e 58%,
+    #b8760f 78%,
+    #ffe9a8 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 1.4cqh rgba(255, 178, 40, 0.5));
+}
+
+.divider {
+  width: 44cqw;
+  height: 0.22cqh;
+  background: linear-gradient(to right, rgba(240, 200, 110, 0), #e8bf6a, rgba(240, 200, 110, 0));
+  box-shadow: 0 0 1cqh rgba(0, 0, 0, 0.9);
+}
+
+.titleOutline {
+  position: absolute;
+  inset: 0;
+  font-family: 'Noto Serif JP', serif;
+  font-weight: 700;
+  font-size: 9.2cqh;
+  line-height: 1.08;
+  letter-spacing: 0.04em;
+  text-align: center;
+  color: #1a0d00;
+  text-shadow:
+    0 0 1.8cqh rgba(0, 0, 0, 1),
+    0 0 3.6cqh rgba(0, 0, 0, 0.95),
+    0 0.35cqh 0.7cqh rgba(0, 0, 0, 1);
+  -webkit-text-stroke: 0.6cqh rgba(10, 6, 0, 0.92);
+}
+
+.titleGold {
+  position: relative;
+  font-family: 'Noto Serif JP', serif;
+  font-weight: 700;
+  font-size: 9.2cqh;
+  line-height: 1.08;
+  letter-spacing: 0.04em;
+  text-align: center;
+  background-image: linear-gradient(
+    180deg,
+    #fffaea 0%,
+    #ffe08c 32%,
+    #f0b13e 56%,
+    #c07f12 76%,
+    #ffeeb8 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 1.8cqh rgba(255, 170, 30, 0.55));
+}

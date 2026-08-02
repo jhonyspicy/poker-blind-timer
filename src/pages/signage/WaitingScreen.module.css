@@ -63,12 +63,27 @@
   font-style: italic;
 }
 
-/* 両脇の細い罫線 */
-.rule {
-  display: inline-block;
-  width: 3em;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #c9a44f, transparent);
+/* エントリー数(タイトル直下) */
+.entryCount {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.7em;
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
+  font-weight: 600;
+  font-size: max(28px, 3.4vw);
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  color: #cbbb92;
+  white-space: nowrap;
+}
+
+.entryCountVal {
+  font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', serif;
+  font-weight: 700;
+  font-size: max(64px, 9.3vw);
+  line-height: 1;
+  letter-spacing: 0.02em;
 }
 
 /* BLINDS プレート(二重の金枠) */
@@ -88,19 +103,6 @@
   flex-direction: column;
   align-items: center;
   gap: max(4px, 1vh);
-}
-
-.entryLabel {
-  display: flex;
-  align-items: center;
-  gap: 1em;
-  font-family: 'Cormorant Garamond', 'Georgia', serif;
-  font-weight: 600;
-  font-size: max(16px, 1.8vw);
-  letter-spacing: 0.5em;
-  text-indent: 0.5em;
-  color: #e6cb85;
-  white-space: nowrap;
 }
 
 .blinds {
