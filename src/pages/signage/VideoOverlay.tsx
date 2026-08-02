@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { assetUrl } from './preload'
 import styles from './VideoOverlay.module.css'
 
 export type VideoEvent = 'tournament-start' | 'in-the-money' | 'heads-up' | 'champion'
@@ -23,9 +24,20 @@ export default function VideoOverlay({
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const doneRef = useRef(false)
   const [visible, setVisible] = useState(false)
+  // 表示中に先読みが完了しても URL を差し替えない(再生が最初からやり直しになる)よう、
+  // イベントごとに一度だけ解決する
+  const urls = useMemo(() => {
+    const base = `${import.meta.env.BASE_URL}videos/${event}`
+    return { video: assetUrl(`${base}.webm`), audio: assetUrl(`${base}.ogg`) }
+  }, [event])
 
   useEffect(() => {
     doneRef.current = false
+    if (urls.video === null) {
+      // 先読みで素材なし(404)と判明済み。待たずに即スキップする
+      onDone(event)
+      return
+    }
     const video = videoRef.current
     if (!video) return
     const finish = () => {
@@ -72,13 +84,13 @@ export default function VideoOverlay({
       window.clearTimeout(timeout)
       if (watchdog !== null) window.clearInterval(watchdog)
     }
-  }, [event, onDone, onStarted])
+  }, [event, onDone, onStarted, urls])
 
-  const base = `${import.meta.env.BASE_URL}videos/${event}`
+  if (urls.video === null) return null
   return (
     <div className={styles.overlay} style={{ opacity: visible ? 1 : 0 }}>
-      <video ref={videoRef} className={styles.video} src={`${base}.webm`} playsInline />
-      <audio ref={audioRef} src={`${base}.ogg`} />
+      <video ref={videoRef} className={styles.video} src={urls.video} playsInline />
+      {urls.audio !== null && <audio ref={audioRef} src={urls.audio} />}
     </div>
   )
 }

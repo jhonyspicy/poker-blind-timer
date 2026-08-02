@@ -1,5 +1,6 @@
 import type { TournamentConfig } from '../../domain/types'
 import styles from './ChampionScreen.module.css'
+import { assetUrl } from './preload'
 
 /**
  * 優勝画面(デザインモック Champion Signage の移植)。
@@ -13,7 +14,8 @@ export default function ChampionScreen({
   storeName: string
   config: TournamentConfig
 }) {
-  const backgroundImage = `url(${import.meta.env.BASE_URL}images/champion.png)`
+  const imageUrl = assetUrl(`${import.meta.env.BASE_URL}images/champion.png`)
+  const backgroundImage = imageUrl === null ? undefined : `url(${imageUrl})`
   return (
     <div className={styles.page}>
       <div className={styles.frame} style={{ backgroundImage }}>

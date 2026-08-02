@@ -25,6 +25,7 @@ import {
 import { MESSAGE_NAME, type RemoteCommand } from '../../realtime/messages'
 import { buildSnapshot } from '../../realtime/snapshot'
 import { getConfig, loadRoom, loadSession, saveSession } from '../../storage/db'
+import { preloadSignageAssets } from './preload'
 import { playSound } from './sounds'
 import type { VideoEvent } from './VideoOverlay'
 
@@ -87,6 +88,7 @@ export function useSignageController(): SignageControllerState {
 
   // ---- 初期読み込み ----
   useEffect(() => {
+    preloadSignageAssets()
     let cancelled = false
     void (async () => {
       const storedSession = await loadSession()
