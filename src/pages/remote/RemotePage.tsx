@@ -15,10 +15,6 @@ type ConnState = 'connecting' | 'connected' | 'disconnected' | 'failed'
 type Tab = 'control' | 'history'
 
 const HISTORY_LABEL = { entry: 'エントリー', addon: 'アドオン', bust: 'バスト' } as const
-
-/** チップ量入力の保存キー(次回のリモコン起動時に前回値を引き継ぐ) */
-const ENTRY_CHIP_KEY = 'remote.entryChip'
-const ADDON_CHIP_KEY = 'remote.addonChip'
 /** START 送信後にサイネージから応答が無い場合、開始スライダーを元に戻すまでの時間 */
 const START_TIMEOUT_MS = 15_000
 /** 履歴から拾うクイックチップの最大数 */
@@ -114,8 +110,9 @@ export default function RemotePage() {
   const hasSnapshotRef = useRef(false)
   const [tab, setTab] = useState<Tab>('control')
   const [now, setNow] = useState(() => Date.now())
-  const [entryChip, setEntryChip] = useState(() => localStorage.getItem(ENTRY_CHIP_KEY) ?? '')
-  const [addonChip, setAddonChip] = useState(() => localStorage.getItem(ADDON_CHIP_KEY) ?? '')
+  // チップ量入力。記録したら次の入力に備えて空に戻す(繰り返しはクイックチップで行う)
+  const [entryChip, setEntryChip] = useState('')
+  const [addonChip, setAddonChip] = useState('')
   const channelRef = useRef<Ably.RealtimeChannel | null>(null)
 
   // 開始スライダー(スライドして開始)
@@ -258,13 +255,13 @@ export default function RemotePage() {
   const entryChipValue = Number.parseInt(entryChip.replace(/[^\d]/g, ''), 10)
   const addonChipValue = Number.parseInt(addonChip.replace(/[^\d]/g, ''), 10)
 
-  const updateEntryChip = (value: string) => {
-    setEntryChip(value)
-    localStorage.setItem(ENTRY_CHIP_KEY, value)
+  const addEntry = () => {
+    sendCommand({ type: 'HISTORY_ADD', command: 'entry', chip: entryChipValue })
+    setEntryChip('')
   }
-  const updateAddonChip = (value: string) => {
-    setAddonChip(value)
-    localStorage.setItem(ADDON_CHIP_KEY, value)
+  const addAddon = () => {
+    sendCommand({ type: 'HISTORY_ADD', command: 'addon', chip: addonChipValue })
+    setAddonChip('')
   }
 
   /** 履歴に出てくるチップ量(重複なし・降順)をクイック入力候補にする */
@@ -280,8 +277,6 @@ export default function RemotePage() {
       .slice(0, QUICK_CHIP_MAX)
 
   const addQuick = (command: HistoryCommand, chip: number) => {
-    if (command === 'entry') updateEntryChip(String(chip))
-    else updateAddonChip(String(chip))
     sendCommand({ type: 'HISTORY_ADD', command, chip })
   }
 
@@ -432,16 +427,14 @@ export default function RemotePage() {
                       placeholder="チップ量"
                       className={styles.field}
                       value={entryChip}
-                      onChange={(e) => updateEntryChip(e.target.value)}
+                      onChange={(e) => setEntryChip(e.target.value)}
                       aria-label="エントリーのチップ量"
                     />
                     <button
                       type="button"
                       className={styles.btnEntry}
                       disabled={!Number.isFinite(entryChipValue) || entryChipValue <= 0}
-                      onClick={() =>
-                        sendCommand({ type: 'HISTORY_ADD', command: 'entry', chip: entryChipValue })
-                      }
+                      onClick={addEntry}
                     >
                       エントリー
                     </button>
@@ -476,16 +469,14 @@ export default function RemotePage() {
                       placeholder="チップ量"
                       className={styles.field}
                       value={addonChip}
-                      onChange={(e) => updateAddonChip(e.target.value)}
+                      onChange={(e) => setAddonChip(e.target.value)}
                       aria-label="アドオンのチップ量"
                     />
                     <button
                       type="button"
                       className={styles.btnAddon}
                       disabled={!Number.isFinite(addonChipValue) || addonChipValue <= 0}
-                      onClick={() =>
-                        sendCommand({ type: 'HISTORY_ADD', command: 'addon', chip: addonChipValue })
-                      }
+                      onClick={addAddon}
                     >
                       アドオン
                     </button>
