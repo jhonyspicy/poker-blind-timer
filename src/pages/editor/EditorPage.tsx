@@ -161,17 +161,6 @@ export default function EditorPage() {
                 onChange={(e) => update({ title: e.target.value })}
               />
             </div>
-            <div className={styles.field}>
-              <label htmlFor="entryNotice">エントリー案内(サイネージに表示。空欄なら非表示)</label>
-              <input
-                id="entryNotice"
-                type="text"
-                className={styles.input}
-                placeholder="例: 2500円で8000点です!"
-                value={draft.entryNotice ?? ''}
-                onChange={(e) => update({ entryNotice: e.target.value })}
-              />
-            </div>
           </section>
 
           <section className={styles.section}>

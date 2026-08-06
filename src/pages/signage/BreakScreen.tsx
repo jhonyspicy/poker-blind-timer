@@ -1,5 +1,5 @@
 import { formatChips, formatClock } from '../../domain/format'
-import { lateRegStatus, nextBlindLevel, remainingMs } from '../../domain/timer'
+import { nextBlindLevel, remainingMs } from '../../domain/timer'
 import type { SessionState, TournamentConfig, TournamentStats } from '../../domain/types'
 import BreakBackground from './BreakBackground'
 import styles from './BreakScreen.module.css'
@@ -37,8 +37,6 @@ export default function BreakScreen({
     }
     return null
   })()
-  const lateReg = lateRegStatus(timer, structure, now)
-  const notice = config.entryNotice?.trim()
 
   return (
     <div className={styles.page}>
@@ -62,9 +60,6 @@ export default function BreakScreen({
             <div className={styles.time}>
               <TabularNumber text={formatClock(remaining)} />
             </div>
-            {notice && lateReg.kind === 'open' && (
-              <div className={styles.entryNotice}>{notice}</div>
-            )}
           </div>
 
           <div className={styles.bottom}>

@@ -36,12 +36,6 @@ export interface TournamentConfig {
   id: string
   title: string
   prizes: Prize[]
-  /**
-   * エントリー案内の自由テキスト(例:「2500円で8000点です!」)。
-   * 参加費・チップ量の条件は構造化せず、この案内でプレイヤーに伝える(design.md D11)。
-   * 旧データには存在しないため省略可
-   */
-  entryNotice?: string
   structure: StructureItem[]
   createdAt: number
   updatedAt: number

@@ -17,7 +17,6 @@ export function createNewConfig(now: number = Date.now()): TournamentConfig {
     id: crypto.randomUUID(),
     title: '',
     prizes: [],
-    entryNotice: '',
     structure: [createBlindLevel()],
     createdAt: now,
     updatedAt: now,
