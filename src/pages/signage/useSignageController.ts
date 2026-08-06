@@ -14,6 +14,7 @@ import {
   remainingMs,
   resolveTimer,
   resumeTimer,
+  setRemainingMs,
   startTimer,
 } from '../../domain/timer'
 import type { SessionState, TournamentConfig } from '../../domain/types'
@@ -198,6 +199,11 @@ export function useSignageController(): SignageControllerState {
         case 'PREV_LEVEL':
           next = { ...current, timer: prevLevel(current.timer, cfg.structure, nowMs) }
           break
+        case 'SET_REMAINING': {
+          const timer = setRemainingMs(current.timer, cfg.structure, nowMs, command.remainingMs)
+          if (timer !== current.timer) next = { ...current, timer }
+          break
+        }
         case 'HISTORY_ADD': {
           const result = addHistory(current.histories, current.nextHistoryId, {
             command: command.command,
@@ -243,6 +249,17 @@ export function useSignageController(): SignageControllerState {
     void channel.subscribe(MESSAGE_NAME.command, (message) => {
       applyCommandRef.current(message.data as RemoteCommand)
     })
+    // 先に接続していたリモコンへ現在状態を届ける(マウント時の配信は
+    // チャンネル準備前に走るため、ここで改めて配信する)
+    const current = sessionRef.current
+    const cfg = configRef.current
+    if (current && cfg) {
+      try {
+        void channel.publish(MESSAGE_NAME.state, buildSnapshot(cfg, current, Date.now()))
+      } catch {
+        /* 未接続時は何もしない */
+      }
+    }
     return () => {
       channelRef.current = null
       client.close()

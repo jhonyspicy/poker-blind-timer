@@ -14,6 +14,7 @@ export type RemoteCommand =
   | { type: 'RESUME'; requestId: string }
   | { type: 'NEXT_LEVEL'; requestId: string }
   | { type: 'PREV_LEVEL'; requestId: string }
+  | { type: 'SET_REMAINING'; requestId: string; remainingMs: number }
   | { type: 'REQUEST_STATE'; requestId: string }
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never
@@ -31,6 +32,8 @@ export interface StateSnapshot {
   levelNumber: number | null
   blind: { sb: number; bb: number; ante: number } | null
   remainingMs: number
+  /** 現在レベルの持ち時間(ms)。残り時間スライダーの最大値に使う。進行中以外は null */
+  levelDurationMs: number | null
   title: string
   histories: HistoryEntry[]
   stats: TournamentStats

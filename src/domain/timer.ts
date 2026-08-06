@@ -107,6 +107,25 @@ export function prevLevel(state: TimerState, structure: StructureItem[], now: nu
     : { status: 'running', levelIndex: prevIndex, levelStartedAt: now }
 }
 
+/**
+ * 現在レベルの残り時間を指定値(ms)に変更する。レベルの持ち時間内に収め、
+ * 一時停止中は停止したまま反映する。開始前・終了後は何もしない
+ */
+export function setRemainingMs(
+  state: TimerState,
+  structure: StructureItem[],
+  now: number,
+  remaining: number,
+): TimerState {
+  const resolved = resolveTimer(state, structure, now)
+  if (resolved.status !== 'running' && resolved.status !== 'paused') return resolved
+  const duration = durationMs(structure[resolved.levelIndex])
+  const elapsed = duration - Math.min(Math.max(remaining, 0), duration)
+  return resolved.status === 'paused'
+    ? { status: 'paused', levelIndex: resolved.levelIndex, elapsedInLevelMs: elapsed }
+    : { status: 'running', levelIndex: resolved.levelIndex, levelStartedAt: now - elapsed }
+}
+
 /** 現在ストラクチャー上のブレイク中かどうか */
 export function isOnBreak(state: TimerState, structure: StructureItem[], now: number): boolean {
   const resolved = resolveTimer(state, structure, now)

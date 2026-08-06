@@ -11,6 +11,7 @@ import {
   remainingMs,
   resolveTimer,
   resumeTimer,
+  setRemainingMs,
   startTimer,
 } from './timer'
 import type { StructureItem } from './types'
@@ -129,6 +130,46 @@ describe('nextLevel / prevLevel', () => {
       status: 'paused',
       levelIndex: 1,
       elapsedInLevelMs: 0,
+    })
+  })
+})
+
+describe('setRemainingMs', () => {
+  it('進行中は指定した残り時間から続きが進む', () => {
+    const state = startTimer(T0)
+    const now = T0 + 5 * MIN
+    const set = setRemainingMs(state, structure, now, 3 * MIN)
+    expect(remainingMs(set, structure, now)).toBe(3 * MIN)
+    expect(remainingMs(set, structure, now + MIN)).toBe(2 * MIN)
+  })
+
+  it('一時停止中は停止したまま残り時間だけ変わる', () => {
+    const state = pauseTimer(startTimer(T0), structure, T0 + 5 * MIN)
+    const set = setRemainingMs(state, structure, T0 + 6 * MIN, 3 * MIN)
+    expect(set).toEqual({ status: 'paused', levelIndex: 0, elapsedInLevelMs: 17 * MIN })
+    expect(remainingMs(set, structure, T0 + 65 * MIN)).toBe(3 * MIN)
+  })
+
+  it('レベルの持ち時間を超える指定は持ち時間に丸められる', () => {
+    const state = startTimer(T0)
+    const now = T0 + 5 * MIN
+    const set = setRemainingMs(state, structure, now, 60 * MIN)
+    expect(remainingMs(set, structure, now)).toBe(20 * MIN)
+    // 残り 0(以下)はレベル境界なので、次のレベルの先頭へ進む
+    const zero = setRemainingMs(state, structure, now, -MIN)
+    expect(resolveTimer(zero, structure, now)).toEqual({
+      status: 'running',
+      levelIndex: 1,
+      levelStartedAt: now,
+    })
+  })
+
+  it('開始前・終了後は何もしない', () => {
+    expect(setRemainingMs({ status: 'waiting' }, structure, T0, 3 * MIN)).toEqual({
+      status: 'waiting',
+    })
+    expect(setRemainingMs({ status: 'finished' }, structure, T0, 3 * MIN)).toEqual({
+      status: 'finished',
     })
   })
 })
