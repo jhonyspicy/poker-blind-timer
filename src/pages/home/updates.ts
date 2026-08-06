@@ -13,6 +13,10 @@ const MAX_UPDATES = 10
 const ALL_UPDATES: UpdateEntry[] = [
   {
     date: '2026-08-06',
+    text: 'エディタの Shift+Enter の案内文を、追加ボタンの下の行に表示するようにしました',
+  },
+  {
+    date: '2026-08-06',
     text: 'エディタでレベルを追加したとき、直前のレベルの値が初期値として入るようにしました',
   },
   {

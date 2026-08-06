@@ -230,8 +230,8 @@ export default function EditorPage() {
               <button type="button" className={styles.btnSecondary} onClick={addPrize}>
                 プライズを追加
               </button>
-              <span className={styles.sectionHint}>入力中に Shift + Enter でも追加できます</span>
             </div>
+            <span className={styles.sectionHint}>入力中に Shift + Enter でも追加できます</span>
           </section>
 
           <section className={styles.section} onKeyDown={handleStructureSectionKeyDown}>
@@ -373,10 +373,10 @@ export default function EditorPage() {
               >
                 レイトレジストレーションを追加
               </button>
-              <span className={styles.sectionHint}>
-                入力中に Shift + Enter でレベルを追加できます
-              </span>
             </div>
+            <span className={styles.sectionHint}>
+              入力中に Shift + Enter でレベルを追加できます
+            </span>
           </section>
 
           {errors.length > 0 && (

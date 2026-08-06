@@ -163,6 +163,8 @@
 .sectionHint {
   font-size: 13px;
   color: var(--muted);
+  /* ボタン行の補足なので、セクションの標準 gap より詰めて表示する */
+  margin-top: -6px;
 }
 
 .field {
