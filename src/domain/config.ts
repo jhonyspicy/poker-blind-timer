@@ -1,7 +1,8 @@
 import type { BlindLevel, BreakItem, LateRegCloseItem, TournamentConfig } from './types'
 
-export function createBlindLevel(): BlindLevel {
-  return { kind: 'blind', sb: 100, bb: 200, ante: 200, durationMinutes: 20 }
+/** base を渡すとその値を引き継ぐ(エディタで直近レベルを初期値にするため) */
+export function createBlindLevel(base?: BlindLevel): BlindLevel {
+  return base ? { ...base } : { kind: 'blind', sb: 100, bb: 200, ante: 200, durationMinutes: 20 }
 }
 
 export function createBreak(): BreakItem {

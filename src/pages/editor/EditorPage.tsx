@@ -7,7 +7,7 @@ import {
   createNewConfig,
   validateConfig,
 } from '../../domain/config'
-import type { StructureItem, TournamentConfig } from '../../domain/types'
+import type { BlindLevel, StructureItem, TournamentConfig } from '../../domain/types'
 import { getConfig, saveConfig } from '../../storage/db'
 import styles from './EditorPage.module.css'
 
@@ -101,7 +101,11 @@ export default function EditorPage() {
   const addBlindLevel = () => {
     // 追加した行の SB へフォーカスし、そのまま値を打ち替えられるようにする
     pendingSbFocusIndex.current = draft.structure.length
-    insertStructureItem(createBlindLevel())
+    // 直近のブラインドレベルを初期値として引き継ぐ(ブレイク等は挟んでいても無視)
+    const lastBlind = [...draft.structure]
+      .reverse()
+      .find((item): item is BlindLevel => item.kind === 'blind')
+    insertStructureItem(createBlindLevel(lastBlind))
   }
 
   /** セクション内のどの入力にフォーカスがあっても Shift+Enter で行を追加できるようにする */
@@ -369,7 +373,9 @@ export default function EditorPage() {
               >
                 レイトレジストレーションを追加
               </button>
-              <span className={styles.sectionHint}>入力中に Shift + Enter でレベルを追加できます</span>
+              <span className={styles.sectionHint}>
+                入力中に Shift + Enter でレベルを追加できます
+              </span>
             </div>
           </section>
 
