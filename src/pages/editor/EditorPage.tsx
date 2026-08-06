@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import {
   createBlindLevel,
@@ -90,6 +90,38 @@ export default function EditorPage() {
     })
   }
 
+  const addPrize = () => {
+    // 追加した行の入力へフォーカスし、そのまま内容を入力できるようにする
+    pendingPrizeFocusIndex.current = draft.prizes.length
+    update({
+      prizes: [...draft.prizes, { place: draft.prizes.length + 1, description: '' }],
+    })
+  }
+
+  const addBlindLevel = () => {
+    // 追加した行の SB へフォーカスし、そのまま値を打ち替えられるようにする
+    pendingSbFocusIndex.current = draft.structure.length
+    insertStructureItem(createBlindLevel())
+  }
+
+  /** セクション内のどの入力にフォーカスがあっても Shift+Enter で行を追加できるようにする */
+  const isAddRowShortcut = (e: KeyboardEvent) =>
+    e.key === 'Enter' && e.shiftKey && !e.nativeEvent.isComposing
+
+  const handlePrizeSectionKeyDown = (e: KeyboardEvent) => {
+    if (isAddRowShortcut(e)) {
+      e.preventDefault()
+      addPrize()
+    }
+  }
+
+  const handleStructureSectionKeyDown = (e: KeyboardEvent) => {
+    if (isAddRowShortcut(e)) {
+      e.preventDefault()
+      addBlindLevel()
+    }
+  }
+
   const updatePrize = (index: number, description: string) => {
     setDraft((prev) => ({
       ...prev,
@@ -163,7 +195,7 @@ export default function EditorPage() {
             </div>
           </section>
 
-          <section className={styles.section}>
+          <section className={styles.section} onKeyDown={handlePrizeSectionKeyDown}>
             <h3 className={styles.sectionTitle}>プライズ</h3>
             {draft.prizes.map((prize, index) => (
               <div key={index} className={styles.prizeRow}>
@@ -191,23 +223,13 @@ export default function EditorPage() {
               </div>
             ))}
             <div className={styles.row}>
-              <button
-                type="button"
-                className={styles.btnSecondary}
-                onClick={() => {
-                  // 追加した行の入力へフォーカスし、そのまま内容を入力できるようにする
-                  pendingPrizeFocusIndex.current = draft.prizes.length
-                  update({
-                    prizes: [...draft.prizes, { place: draft.prizes.length + 1, description: '' }],
-                  })
-                }}
-              >
+              <button type="button" className={styles.btnSecondary} onClick={addPrize}>
                 プライズを追加
               </button>
             </div>
           </section>
 
-          <section className={styles.section}>
+          <section className={styles.section} onKeyDown={handleStructureSectionKeyDown}>
             <h3 className={styles.sectionTitle}>ストラクチャー</h3>
             <table className={styles.table}>
               <thead>
@@ -327,15 +349,7 @@ export default function EditorPage() {
               </tbody>
             </table>
             <div className={styles.row}>
-              <button
-                type="button"
-                className={styles.btnSecondary}
-                onClick={() => {
-                  // 追加した行の SB へフォーカスし、そのまま値を打ち替えられるようにする
-                  pendingSbFocusIndex.current = draft.structure.length
-                  insertStructureItem(createBlindLevel())
-                }}
-              >
+              <button type="button" className={styles.btnSecondary} onClick={addBlindLevel}>
                 レベルを追加
               </button>
               <button
