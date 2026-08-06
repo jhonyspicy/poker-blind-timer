@@ -213,6 +213,42 @@
   color: var(--muted);
 }
 
+.updates {
+  margin-top: 44.8px;
+}
+
+.updatesTitle {
+  margin: 0 0 11.2px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.updatesList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5.6px;
+}
+
+.updatesItem {
+  display: flex;
+  align-items: baseline;
+  gap: 11.2px;
+  font-size: 14px;
+}
+
+.updatesDate {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.updatesText {
+  color: var(--text);
+}
+
 .dialogBackdrop {
   position: fixed;
   inset: 0;

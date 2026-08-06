@@ -21,6 +21,7 @@ import {
   saveSession,
 } from '../../storage/db'
 import styles from './HomePage.module.css'
+import { UPDATES } from './updates'
 
 const TOAST_DURATION_MS = 2500
 
@@ -316,6 +317,21 @@ export default function HomePage() {
             </div>
           )}
         </main>
+        {UPDATES.length > 0 && (
+          <section className={styles.updates} aria-labelledby="updates-heading">
+            <h3 id="updates-heading" className={styles.updatesTitle}>
+              アップデート情報
+            </h3>
+            <ul className={styles.updatesList}>
+              {UPDATES.map((entry) => (
+                <li key={`${entry.date}-${entry.text}`} className={styles.updatesItem}>
+                  <span className={styles.updatesDate}>{entry.date.replaceAll('-', '/')}</span>
+                  <span className={styles.updatesText}>{entry.text}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
       {confirmTarget && (
         <div className={styles.dialogBackdrop} onClick={() => setConfirmTarget(null)}>
