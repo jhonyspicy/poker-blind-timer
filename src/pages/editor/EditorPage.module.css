@@ -160,6 +160,11 @@
   line-height: 1.2;
 }
 
+.sectionHint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
 .field {
   display: flex;
   flex-direction: column;

@@ -226,6 +226,7 @@ export default function EditorPage() {
               <button type="button" className={styles.btnSecondary} onClick={addPrize}>
                 プライズを追加
               </button>
+              <span className={styles.sectionHint}>入力中に Shift + Enter でも追加できます</span>
             </div>
           </section>
 
@@ -368,6 +369,7 @@ export default function EditorPage() {
               >
                 レイトレジストレーションを追加
               </button>
+              <span className={styles.sectionHint}>入力中に Shift + Enter でレベルを追加できます</span>
             </div>
           </section>
 
