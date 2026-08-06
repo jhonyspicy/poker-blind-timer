@@ -472,13 +472,3 @@
   color: #e8c15a;
   text-align: center;
 }
-
-/* — 一時停止テープ演出(最前面・クリック透過) — */
-.pauseCanvas {
-  position: absolute;
-  inset: 0;
-  width: 1920px;
-  height: 1080px;
-  pointer-events: none;
-  z-index: 30;
-}

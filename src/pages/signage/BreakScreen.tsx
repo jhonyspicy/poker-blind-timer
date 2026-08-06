@@ -3,6 +3,7 @@ import { lateRegStatus, nextBlindLevel, remainingMs } from '../../domain/timer'
 import type { SessionState, TournamentConfig, TournamentStats } from '../../domain/types'
 import BreakBackground from './BreakBackground'
 import styles from './BreakScreen.module.css'
+import PauseTapeOverlay from './PauseTapeOverlay'
 import TabularNumber from './TabularNumber'
 
 /**
@@ -104,6 +105,8 @@ export default function BreakScreen({
             </div>
           </div>
         </div>
+
+        <PauseTapeOverlay paused={timer.status === 'paused'} />
       </div>
     </div>
   )
