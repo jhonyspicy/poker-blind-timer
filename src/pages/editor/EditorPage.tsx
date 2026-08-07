@@ -7,6 +7,11 @@ import {
   createNewConfig,
   validateConfig,
 } from '../../domain/config'
+import {
+  STRUCTURE_TEMPLATES,
+  buildTemplateStructure,
+  type StructureTemplate,
+} from '../../domain/structureTemplates'
 import type { BlindLevel, StructureItem, TournamentConfig } from '../../domain/types'
 import { getConfig, saveConfig } from '../../storage/db'
 import styles from './EditorPage.module.css'
@@ -32,6 +37,8 @@ export default function EditorPage() {
   /** true なら既存設定の編集(見出しの出し分け用) */
   const [isEditing, setIsEditing] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
+  /** テンプレート適用時の開始 SB。店舗のチップ構成に合わせて変更できる */
+  const [templateSb, setTemplateSb] = useState(100)
   const navigate = useNavigate()
   /** レベル追加直後にフォーカスする SB 入力の structure index */
   const pendingSbFocusIndex = useRef<number | null>(null)
@@ -122,6 +129,17 @@ export default function EditorPage() {
       .find((item): item is BlindLevel => item.kind === 'blind')
     insertStructureItem(createBlindLevel(lastBlind))
   }
+
+  const applyTemplate = (template: StructureTemplate) => {
+    // 既存の入力を丸ごと置き換えるため、消してよいか確認してから適用する
+    const ok = window.confirm(
+      `現在のストラクチャーを消して「${template.label}」のテンプレートに置き換えます。よろしいですか?`,
+    )
+    if (!ok) return
+    setDraft((prev) => ({ ...prev, structure: buildTemplateStructure(template, templateSb) }))
+  }
+
+  const templateSbValid = Number.isFinite(templateSb) && templateSb > 0
 
   /** セクション内のどの入力にフォーカスがあっても Shift+Enter で行を追加できるようにする */
   const isAddRowShortcut = (e: KeyboardEvent) =>
@@ -271,6 +289,39 @@ export default function EditorPage() {
 
           <section className={styles.section} onKeyDown={handleStructureSectionKeyDown}>
             <h3 className={styles.sectionTitle}>ストラクチャー</h3>
+            <div className={styles.templateBlock}>
+              <span className={styles.templateLabel}>テンプレートから作成</span>
+              <div className={styles.row}>
+                <label htmlFor="templateSb" className={styles.templateSbLabel}>
+                  開始 SB
+                </label>
+                <input
+                  id="templateSb"
+                  type="number"
+                  min={1}
+                  className={`${styles.input} ${styles.numberInput}`}
+                  value={templateSb}
+                  onChange={(e) => setTemplateSb(Number(e.target.value))}
+                />
+                {STRUCTURE_TEMPLATES.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    className={styles.btnSecondary}
+                    disabled={!templateSbValid}
+                    title={!templateSbValid ? '開始 SB を正の数にしてください' : undefined}
+                    onClick={() => applyTemplate(template)}
+                  >
+                    {template.label}
+                  </button>
+                ))}
+              </div>
+              <span className={styles.sectionHint}>
+                開始 SB を店舗のチップに合わせて選び、テンプレートを押すとストラクチャー全体
+                (ブレイク・レイトレジ締切込み)を自動作成します。1 レベルの長さ: ハイパーターボ 5 分
+                / ターボ 10 分 / レギュラー 15 分 / ロング 20 分
+              </span>
+            </div>
             <table className={styles.table}>
               <thead>
                 <tr>

@@ -228,6 +228,27 @@
   color: var(--muted);
 }
 
+/* テンプレート適用の操作をひとかたまりに見せ、手入力の表と区別する */
+.templateBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8.4px;
+  padding: 14px;
+  border: 1px dashed var(--divider);
+  border-radius: 8px;
+}
+
+.templateLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.templateSbLabel {
+  font-size: 13px;
+  color: var(--muted);
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
