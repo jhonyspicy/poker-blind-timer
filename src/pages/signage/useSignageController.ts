@@ -8,6 +8,7 @@ import {
   updateHistoryChip,
 } from '../../domain/stats'
 import {
+  lateRegStatus,
   nextLevel,
   pauseTimer,
   prevLevel,
@@ -79,6 +80,9 @@ export function useSignageController(): SignageControllerState {
   const processedRequestIds = useRef(new Set<string>())
   const prevLevelIndexRef = useRef<number | null>(null)
   const warnedLevelRef = useRef<number | null>(null)
+  /** 前回 tick でレイトレジ受付中だったか(締切到達の瞬間を検知して演出判定を走らせる)。
+      null は未判定 = 初回 tick でも一度判定し、リロードで取りこぼした演出を回収する */
+  const lateRegWasOpenRef = useRef<boolean | null>(null)
   /** START 受信済みで開始演出~タイマー起動待ちの間 true(START の二重処理防止) */
   const startPendingRef = useRef(false)
   const startTimeouts = useRef<number[]>([])
@@ -133,30 +137,40 @@ export function useSignageController(): SignageControllerState {
   }, [session, config])
 
   // ---- 演出イベント(各トーナメント 1 回だけ) ----
-  const applyMilestones = useCallback((next: SessionState, cfg: TournamentConfig): SessionState => {
-    const stats = deriveStats(next.histories)
-    const played = new Set(next.playedEffects ?? [])
-    // エントリー増加の途中で誤発火しないよう「1 人以上バストしている」ことを条件にする
-    const someoneBusted = stats.totalEntries > stats.currentPlayers
-    const fire = (event: VideoEvent) => {
-      if (played.has(event)) return
-      played.add(event)
-      // 優勝画面は演出の再生開始+7 秒まで保留する(再生できなければ演出終了時に解除)
-      if (event === 'champion') setChampionHold(true)
-      setOverlayQueue((queue) => [...queue, event])
-    }
-    if (
-      someoneBusted &&
-      cfg.prizes.length > 0 &&
-      stats.currentPlayers >= 1 &&
-      stats.currentPlayers <= cfg.prizes.length
-    ) {
-      fire('in-the-money')
-    }
-    if (someoneBusted && stats.currentPlayers === 2) fire('heads-up')
-    if (isChampionDecided(stats)) fire('champion')
-    return { ...next, playedEffects: [...played] }
-  }, [])
+  const applyMilestones = useCallback(
+    (next: SessionState, cfg: TournamentConfig, nowMs: number): SessionState => {
+      const stats = deriveStats(next.histories)
+      const played = new Set(next.playedEffects ?? [])
+      const fire = (event: VideoEvent) => {
+        if (played.has(event)) return
+        played.add(event)
+        // 優勝画面は演出の再生開始+7 秒まで保留する(再生できなければ演出終了時に解除)
+        if (event === 'champion') setChampionHold(true)
+        setOverlayQueue((queue) => [...queue, event])
+      }
+      // レイトレジ受付中はエントリーで人数が増え得るため、インマネ・ヘッズアップ・優勝は
+      // 確定しない。締切後はエントリーが増えないので、バストが無くても現在人数だけで確定する。
+      // 締切マーカーの無いストラクチャーでは、エントリー入力途中の誤発火を防ぐため
+      // 「1 人以上バストしている」ことを条件にする
+      const lateReg = lateRegStatus(next.timer, cfg.structure, nowMs)
+      const decided =
+        lateReg.kind === 'closed' ||
+        (lateReg.kind === 'none' && stats.totalEntries > stats.currentPlayers)
+      if (decided) {
+        if (
+          cfg.prizes.length > 0 &&
+          stats.currentPlayers >= 1 &&
+          stats.currentPlayers <= cfg.prizes.length
+        ) {
+          fire('in-the-money')
+        }
+        if (stats.currentPlayers === 2) fire('heads-up')
+        if (isChampionDecided(stats)) fire('champion')
+      }
+      return { ...next, playedEffects: [...played] }
+    },
+    [],
+  )
 
   // ---- リモコンコマンドの適用 ----
   const applyCommand = useCallback(
@@ -229,7 +243,7 @@ export function useSignageController(): SignageControllerState {
           }
           break
       }
-      if (next) commitSession(applyMilestones(next, cfg))
+      if (next) commitSession(applyMilestones(next, cfg, nowMs))
     },
     [applyMilestones, commitSession],
   )
@@ -310,14 +324,20 @@ export function useSignageController(): SignageControllerState {
           playSound('level-up-warning')
         }
       }
-      if (resolved !== current.timer) {
-        commitSession({ ...current, timer: resolved })
+      // レイトレジ締切に到達した瞬間にも演出判定を行う(締切時点の人数で
+      // インマネ・ヘッズアップ・優勝が確定するため。バスト等の操作を待たない)
+      const lateRegOpen = lateRegStatus(resolved, cfg.structure, nowMs).kind === 'open'
+      const justClosed = !lateRegOpen && lateRegWasOpenRef.current !== false
+      lateRegWasOpenRef.current = lateRegOpen
+      if (resolved !== current.timer || justClosed) {
+        const updated = resolved !== current.timer ? { ...current, timer: resolved } : current
+        commitSession(justClosed ? applyMilestones(updated, cfg, nowMs) : updated)
       }
     }
     tick()
     const id = window.setInterval(tick, 250)
     return () => window.clearInterval(id)
-  }, [loaded, commitSession])
+  }, [loaded, commitSession, applyMilestones])
 
   // ---- トーナメント開始(開始演出との同期) ----
   const startTournamentIfWaiting = useCallback(() => {
@@ -325,7 +345,8 @@ export function useSignageController(): SignageControllerState {
     const cfg = configRef.current
     startPendingRef.current = false
     if (!current || !cfg || current.timer.status !== 'waiting') return
-    commitSession(applyMilestones({ ...current, timer: startTimer(Date.now()) }, cfg))
+    const nowMs = Date.now()
+    commitSession(applyMilestones({ ...current, timer: startTimer(nowMs) }, cfg, nowMs))
   }, [applyMilestones, commitSession])
 
   const onOverlayStarted = useCallback(
@@ -373,9 +394,11 @@ export function useSignageController(): SignageControllerState {
   const onBreak =
     (resolved.status === 'running' || resolved.status === 'paused') &&
     config.structure[resolved.levelIndex]?.kind === 'break'
+  // レイトレジ受付中はエントリーで人数が戻り得るため優勝を確定させない。
   // 優勝確定でも championHold の間(優勝演出の再生開始+7 秒まで)は元の画面に留まる
+  const lateRegOpen = lateRegStatus(session.timer, config.structure, now).kind === 'open'
   const phase: SignagePhase =
-    isChampionDecided(stats) && !championHold
+    isChampionDecided(stats) && !lateRegOpen && !championHold
       ? 'champion'
       : resolved.status === 'waiting'
         ? earlyTimerScreen
