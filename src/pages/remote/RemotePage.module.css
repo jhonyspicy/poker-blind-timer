@@ -19,6 +19,8 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  /* コンパクトバー(.miniBar)の絶対配置の基準にする */
+  position: relative;
 }
 
 /* — 全面表示(接続中・接続失敗・終了) — */
@@ -221,6 +223,64 @@
   font-size: 13px;
   color: #8b93a7;
   margin-top: 10px;
+}
+
+/*
+ * — 上部固定のコンパクト表示 —
+ * 状態カードがスクロールで隠れたときだけ表示し、タイマーとブラインドを常に確認できるようにする
+ */
+.miniBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(11, 14, 20, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid #1e2533;
+  animation: mini-bar-in 160ms ease-out;
+  pointer-events: none;
+}
+
+.miniLevel {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #e0b355;
+  flex-shrink: 0;
+}
+
+.miniClock {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: #e9e9ed;
+}
+
+.miniBlinds {
+  font-size: 14px;
+  font-weight: 600;
+  color: #dfe2ea;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+@keyframes mini-bar-in {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* — 記録カード(エントリー / アドオン / タイマー共通) — */

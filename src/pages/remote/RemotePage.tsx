@@ -1,5 +1,5 @@
 import * as Ably from 'ably'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { formatBlind, formatChips, formatClock } from '../../domain/format'
 import type { HistoryCommand } from '../../domain/types'
@@ -21,6 +21,12 @@ const START_TIMEOUT_MS = 15_000
 const QUICK_CHIP_MAX = 5
 /** 開始スライダーのノブ幅+左右余白(px)。ドラッグ可動域の計算に使う */
 const SLIDE_KNOB_SPAN = 76
+/**
+ * 状態カードの可視割合がこれを下回ったら上部のコンパクトバーを表示する。
+ * 完全に隠れるのを待つと、スクロールが下端に達してもカードの端が数 px 残る
+ * 画面サイズでバーが出ないため、残り時間が見えなくなる程度で切り替える
+ */
+const STATE_CARD_VISIBLE_RATIO = 0.35
 
 // ---- アイコン(Phosphor 相当を最小限のインライン SVG で再現) ----
 type IconProps = { className?: string }
@@ -125,6 +131,28 @@ export default function RemotePage() {
   const [sliderSec, setSliderSec] = useState<number | null>(null)
   const sliderSecRef = useRef<number | null>(null)
   const sliderDraggingRef = useRef(false)
+
+  // 状態カードがスクロールで画面外に出たら、上部にコンパクトバーを固定表示する
+  // (小さい画面でもタイマー・ブラインドを常に確認できるようにするため)
+  const [stateCardHidden, setStateCardHidden] = useState(false)
+  const stateCardObserverRef = useRef<IntersectionObserver | null>(null)
+  const stateCardRef = useCallback((node: HTMLDivElement | null) => {
+    stateCardObserverRef.current?.disconnect()
+    stateCardObserverRef.current = null
+    if (!node) {
+      setStateCardHidden(false)
+      return
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setStateCardHidden(entry.intersectionRatio < STATE_CARD_VISIBLE_RATIO)
+      },
+      { threshold: STATE_CARD_VISIBLE_RATIO },
+    )
+    observer.observe(node)
+    stateCardObserverRef.current = observer
+  }, [])
+  useEffect(() => () => stateCardObserverRef.current?.disconnect(), [])
 
   const sendCommand = (input: RemoteCommandInput) => {
     const requestId = crypto.randomUUID()
@@ -393,7 +421,7 @@ export default function RemotePage() {
             {tab === 'control' && (
               <>
                 {/* 現在状態 */}
-                <div className={styles.stateCard}>
+                <div ref={stateCardRef} className={styles.stateCard}>
                   <div className={styles.stateLevel}>{levelLabel}</div>
                   {/* 開始前は最初のレベルの持ち時間が入っている(静的表示) */}
                   <div className={waiting ? styles.stateClockWaiting : styles.stateClock}>
@@ -655,6 +683,22 @@ export default function RemotePage() {
                     ))
                 )}
               </div>
+            )}
+          </div>
+        )}
+
+        {/* 状態カードが画面外のときだけ出す上部固定のコンパクト表示 */}
+        {tab === 'control' && stateCardHidden && snapshot && (
+          <div className={styles.miniBar}>
+            <span className={styles.miniLevel}>{levelLabel}</span>
+            <span className={styles.miniClock}>{formatClock(remaining)}</span>
+            {snapshot.blind ? (
+              <span className={styles.miniBlinds}>
+                {formatBlind(snapshot.blind.sb)} / {formatBlind(snapshot.blind.bb)}
+                {snapshot.blind.ante > 0 && ` (${formatBlind(snapshot.blind.ante)})`}
+              </span>
+            ) : (
+              <span className={styles.miniBlinds}></span>
             )}
           </div>
         )}
