@@ -37,6 +37,10 @@ export default function EditorPage() {
   const pendingSbFocusIndex = useRef<number | null>(null)
   /** プライズ追加直後にフォーカスする入力の prizes index */
   const pendingPrizeFocusIndex = useRef<number | null>(null)
+  /** ストラクチャーの tbody。ショートカット移動後のフォーカス復元に使う */
+  const structureBodyRef = useRef<HTMLTableSectionElement>(null)
+  /** ショートカットで行移動した後、移動先の行へフォーカスを戻すための位置情報 */
+  const pendingMoveFocus = useRef<{ rowIndex: number; focusIndex: number } | null>(null)
   const loaded = !configId || loadedId === configId
 
   // トップページの「編集」からの遷移(?id=)では対象の設定を読み込んだ状態で開く
@@ -90,6 +94,17 @@ export default function EditorPage() {
     })
   }
 
+  // 行は index キーで描画しているため、移動後は同じ DOM 位置に別の行が入る。
+  // フォーカスを移動した行に追従させるため、再描画後に移動先の同じ位置の要素へ戻す
+  useEffect(() => {
+    const pending = pendingMoveFocus.current
+    if (!pending) return
+    pendingMoveFocus.current = null
+    const row = structureBodyRef.current?.children[pending.rowIndex]
+    const focusables = row?.querySelectorAll<HTMLElement>('input, button, [tabindex]')
+    focusables?.[pending.focusIndex]?.focus()
+  })
+
   const addPrize = () => {
     // 追加した行の入力へフォーカスし、そのまま内容を入力できるようにする
     pendingPrizeFocusIndex.current = draft.prizes.length
@@ -123,6 +138,26 @@ export default function EditorPage() {
     if (isAddRowShortcut(e)) {
       e.preventDefault()
       addBlindLevel()
+      return
+    }
+    // Alt(Option)+↑↓ でフォーカスのある行を移動する。
+    // 修飾キーなしの ↑↓ は number 入力の値増減と衝突するため使わない
+    if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      const row = (e.target as HTMLElement).closest('tr')
+      const tbody = structureBodyRef.current
+      if (!row || !tbody || row.parentElement !== tbody) return
+      const index = Array.prototype.indexOf.call(tbody.children, row)
+      const delta = e.key === 'ArrowUp' ? -1 : 1
+      e.preventDefault()
+      const target = index + delta
+      if (target < 0 || target >= draft.structure.length) return
+      // 行内のどの要素にフォーカスがあるかを覚えておき、移動先の同じ要素へ戻す
+      const focusables = Array.from(row.querySelectorAll<HTMLElement>('input, button, [tabindex]'))
+      const focusIndex = focusables.indexOf(document.activeElement as HTMLElement)
+      if (focusIndex >= 0) {
+        pendingMoveFocus.current = { rowIndex: target, focusIndex }
+      }
+      moveStructureItem(index, delta)
     }
   }
 
@@ -247,7 +282,7 @@ export default function EditorPage() {
                   <th></th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody ref={structureBodyRef}>
                 {draft.structure.map((item, index) => (
                   <tr key={index}>
                     <td className={item.kind === 'break' ? styles.breakLabel : undefined}>
@@ -305,7 +340,9 @@ export default function EditorPage() {
                         休憩
                       </td>
                     ) : (
-                      <td colSpan={4} className={styles.lateRegCell}>
+                      // レイトレジ行には入力がなく移動ショートカットの対象を示せないため、
+                      // セル自体をフォーカス可能にして目印(フォーカスリング)を出す
+                      <td colSpan={4} className={styles.lateRegCell} tabIndex={0}>
                         ここでレイトレジストレーション受付終了
                       </td>
                     )}
@@ -375,7 +412,7 @@ export default function EditorPage() {
               </button>
             </div>
             <span className={styles.sectionHint}>
-              入力中に Shift + Enter でレベルを追加できます
+              入力中に Shift + Enter でレベルを追加、Alt(Option)+ ↑↓ で行を移動できます
             </span>
           </section>
 
