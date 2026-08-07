@@ -1,7 +1,7 @@
 import * as Ably from 'ably'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { formatChips, formatClock } from '../../domain/format'
+import { formatBlind, formatChips, formatClock } from '../../domain/format'
 import type { HistoryCommand } from '../../domain/types'
 import {
   ablyChannelName,
@@ -401,8 +401,8 @@ export default function RemotePage() {
                   </div>
                   {snapshot?.blind && (
                     <div className={styles.stateBlinds}>
-                      {formatChips(snapshot.blind.sb)} / {formatChips(snapshot.blind.bb)}
-                      {snapshot.blind.ante > 0 && ` (${formatChips(snapshot.blind.ante)})`}
+                      {formatBlind(snapshot.blind.sb)} / {formatBlind(snapshot.blind.bb)}
+                      {snapshot.blind.ante > 0 && ` (${formatBlind(snapshot.blind.ante)})`}
                     </div>
                   )}
                   {snapshot && (

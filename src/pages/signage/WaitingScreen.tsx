@@ -1,3 +1,4 @@
+import { formatBlind } from '../../domain/format'
 import type { TournamentConfig, TournamentStats } from '../../domain/types'
 import ChipFloatBackground from './ChipFloatBackground'
 import styles from './WaitingScreen.module.css'
@@ -35,21 +36,21 @@ export default function WaitingScreen({
                 <div className={styles.blindItem}>
                   <span className={styles.blindKey}>SB</span>
                   <span className={`${styles.blindVal} ${styles.goldText}`}>
-                    {firstBlind.sb.toLocaleString()}
+                    {formatBlind(firstBlind.sb)}
                   </span>
                 </div>
                 <span className={styles.blindSep}></span>
                 <div className={styles.blindItem}>
                   <span className={styles.blindKey}>BB</span>
                   <span className={`${styles.blindVal} ${styles.goldText}`}>
-                    {firstBlind.bb.toLocaleString()}
+                    {formatBlind(firstBlind.bb)}
                   </span>
                 </div>
                 <span className={styles.blindSep}></span>
                 <div className={styles.blindItem}>
                   <span className={styles.blindKey}>ANTE</span>
                   <span className={`${styles.blindVal} ${styles.goldText}`}>
-                    {firstBlind.ante.toLocaleString()}
+                    {formatBlind(firstBlind.ante)}
                   </span>
                 </div>
               </div>

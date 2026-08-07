@@ -104,9 +104,18 @@
 
 .prizeValue {
   font-weight: 500;
-  font-size: 24px;
+  font-size: 48px;
   color: #e9e6de;
   line-height: 1.35;
+}
+
+/* 長文プライズはパネルを占有しないよう段階的に縮小する(判定は TimerScreen.tsx) */
+.prizeValueMedium {
+  font-size: 32px;
+}
+
+.prizeValueLong {
+  font-size: 24px;
 }
 
 /* — 中央 — */
@@ -229,14 +238,14 @@
 .blindsValue {
   font-family: Oswald, sans-serif;
   font-weight: 600;
-  font-size: 92px;
+  font-size: 108px;
   color: #fff;
   text-align: center;
 }
 
 .anteRow {
   position: absolute;
-  top: 622px;
+  top: 642px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -262,7 +271,7 @@
 
 .divider {
   position: absolute;
-  top: 718px;
+  top: 738px;
   left: 0;
   right: 0;
   display: flex;
@@ -290,7 +299,7 @@
 
 .nextLabel {
   position: absolute;
-  top: 748px;
+  top: 768px;
   left: 0;
   right: 0;
   display: flex;
@@ -311,7 +320,7 @@
 
 .nextRoll {
   position: absolute;
-  top: 782px;
+  top: 802px;
   left: 0;
   right: 0;
 }

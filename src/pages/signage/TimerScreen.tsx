@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { formatChips, formatClock } from '../../domain/format'
+import { formatBlind, formatChips, formatClock } from '../../domain/format'
 import {
   currentBlindLevelNumber,
   lateRegStatus,
@@ -98,6 +98,23 @@ function rankLabel(place: number): string {
   return `${place}${suffix}`
 }
 
+/** 全角 1 / 半角 0.5 で数えた表示幅。フォント縮小の段階判定に使う */
+function visualLength(text: string): number {
+  let len = 0
+  for (const ch of text) {
+    len += ch.charCodeAt(0) > 0xff ? 1 : 0.5
+  }
+  return len
+}
+
+/** 長いプライズ文はパネルを占有しないよう段階的にフォントを縮小する */
+function prizeValueClass(description: string): string {
+  const len = visualLength(description)
+  if (len <= 7) return styles.prizeValue
+  if (len <= 16) return `${styles.prizeValue} ${styles.prizeValueMedium}`
+  return `${styles.prizeValue} ${styles.prizeValueLong}`
+}
+
 export default function TimerScreen({
   config,
   timer,
@@ -130,17 +147,17 @@ export default function TimerScreen({
     currentBlindLevelNumber(timer, structure, now) ?? (waitingPreview && currentBlind ? 1 : '-'),
   )
   const blindsText = currentBlind
-    ? `${formatChips(currentBlind.sb)} / ${formatChips(currentBlind.bb)}`
+    ? `${formatBlind(currentBlind.sb)} / ${formatBlind(currentBlind.bb)}`
     : '-'
-  const anteText = currentBlind ? formatChips(currentBlind.ante) : '-'
+  const anteText = currentBlind ? formatBlind(currentBlind.ante) : '-'
   const next = waitingPreview
     ? (structure.filter((item) => item.kind === 'blind')[1] ?? null)
     : nextBlindLevel(timer, structure, now)
   const nextNode: ReactNode =
     next && next.kind === 'blind' ? (
       <>
-        {formatChips(next.sb)} / {formatChips(next.bb)}{' '}
-        <span className={styles.nextAnte}>(ANTE {formatChips(next.ante)})</span>
+        {formatBlind(next.sb)} / {formatBlind(next.bb)}{' '}
+        <span className={styles.nextAnte}>(ANTE {formatBlind(next.ante)})</span>
       </>
     ) : (
       '-'
@@ -264,7 +281,7 @@ export default function TimerScreen({
               {config.prizes.map((prize) => (
                 <div key={prize.place} className={styles.prizeRow}>
                   <div className={styles.prizeRank}>{rankLabel(prize.place)}</div>
-                  <div className={styles.prizeValue}>{prize.description}</div>
+                  <div className={prizeValueClass(prize.description)}>{prize.description}</div>
                 </div>
               ))}
             </div>
@@ -301,7 +318,7 @@ export default function TimerScreen({
                 from={fx ? fx.from.blinds : null}
                 current={blindsText}
                 rolled={fx?.rollBlinds ?? false}
-                height={110}
+                height={130}
                 animate={!reducedMotion}
                 className={styles.blindsValue}
               />

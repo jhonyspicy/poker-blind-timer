@@ -1,4 +1,4 @@
-import { formatChips, formatClock } from '../../domain/format'
+import { formatBlind, formatChips, formatClock } from '../../domain/format'
 import { nextBlindLevel, remainingMs } from '../../domain/timer'
 import type { SessionState, TournamentConfig, TournamentStats } from '../../domain/types'
 import BreakBackground from './BreakBackground'
@@ -67,11 +67,11 @@ export default function BreakScreen({
               <div className={styles.statCol}>
                 <div className={styles.statLabel}>Next Blinds</div>
                 <div className={styles.statValueGold}>
-                  {nextBlind ? `${formatChips(nextBlind.sb)} / ${formatChips(nextBlind.bb)}` : '-'}
+                  {nextBlind ? `${formatBlind(nextBlind.sb)} / ${formatBlind(nextBlind.bb)}` : '-'}
                 </div>
                 <div className={styles.statSubLine}>
                   {nextBlind
-                    ? `Ante ${formatChips(nextBlind.ante)}` +
+                    ? `Ante ${formatBlind(nextBlind.ante)}` +
                       (nextLevelNumber !== null ? ` · Level ${nextLevelNumber}` : '')
                     : ''}
                 </div>
