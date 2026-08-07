@@ -13,7 +13,7 @@ import {
   type StructureTemplate,
 } from '../../domain/structureTemplates'
 import type { BlindLevel, StructureItem, TournamentConfig } from '../../domain/types'
-import { getConfig, saveConfig } from '../../storage/db'
+import { getConfig, loadRoom, saveConfig } from '../../storage/db'
 import styles from './EditorPage.module.css'
 
 function structureItemLabel(item: StructureItem, index: number): string {
@@ -195,6 +195,13 @@ export default function EditorPage() {
 
   const handleSave = async () => {
     const validationErrors = validateConfig(draft)
+    // 店名は必須。トップページを経由せず /editor を直接開いた場合もここで止める
+    if (!isEditing) {
+      const room = await loadRoom()
+      if (!room?.name) {
+        validationErrors.unshift('店名が未設定です。トップページで店名を入力してください')
+      }
+    }
     setErrors(validationErrors)
     if (validationErrors.length > 0) return
     await saveConfig({ ...draft, updatedAt: Date.now() })

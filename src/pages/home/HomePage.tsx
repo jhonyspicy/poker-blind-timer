@@ -196,6 +196,16 @@ export default function HomePage() {
     navigate('/signage')
   }
 
+  // 店名は必須(サイネージ等に表示するため)。未設定のままタイマーを作らせない
+  const handleCreateTimer = () => {
+    if (!roomName) {
+      setStoreDraft((prev) => prev ?? '')
+      showToast('先に店名を入力してください')
+      return
+    }
+    navigate('/editor')
+  }
+
   const handleSaveStoreName = async () => {
     if (storeDraft === null) return
     const name = storeDraft.trim()
@@ -260,7 +270,7 @@ export default function HomePage() {
           <button
             type="button"
             className={`${styles.btnPrimary} ${styles.createButton}`}
-            onClick={() => navigate('/editor')}
+            onClick={handleCreateTimer}
           >
             <span className={styles.plusIcon}>＋</span>新規タイマー作成
           </button>
