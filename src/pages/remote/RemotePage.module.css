@@ -390,14 +390,15 @@
 .quickChip {
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 38px;
-  padding: 0 12px;
+  gap: 8px;
+  /* スマホでの誤タップ防止に十分なタップ領域(48px 目安)を確保する */
+  height: 48px;
+  padding: 0 18px;
   background: #151a25;
   border: 1px solid #2a3346;
   border-radius: 99px;
   color: #e9e9ed;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -411,8 +412,8 @@
 }
 
 .quickIcon {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .quickIconEntry {
