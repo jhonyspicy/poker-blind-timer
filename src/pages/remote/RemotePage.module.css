@@ -707,6 +707,51 @@
   padding: 16px 0;
 }
 
+/*
+ * — 切断中の操作防止モーダル —
+ * 切断に気づかず操作してコマンドが届かないのを防ぐため、
+ * 再接続が完了するまで画面全体を覆って操作をブロックする
+ */
+.disconnectOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(11, 14, 20, 0.78);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.disconnectCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 320px;
+  padding: 28px 26px;
+  background: #151a25;
+  border: 1px solid #2a3346;
+  border-radius: 14px;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.disconnectTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #e9e9ed;
+}
+
+.disconnectNote {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #8b93a7;
+  margin: 0;
+}
+
 /* — タブバー — */
 .tabbar {
   flex: none;

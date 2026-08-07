@@ -22,6 +22,11 @@ const QUICK_CHIP_MAX = 5
 /** 開始スライダーのノブ幅+左右余白(px)。ドラッグ可動域の計算に使う */
 const SLIDE_KNOB_SPAN = 76
 /**
+ * 切断からモーダル表示までの猶予。Wi-Fi の瞬断のたびにモーダルが
+ * 点滅するのを防ぎ、すぐ復帰した場合は何も表示しない
+ */
+const DISCONNECT_MODAL_DELAY_MS = 1_500
+/**
  * 状態カードの可視割合がこれを下回ったら上部のコンパクトバーを表示する。
  * 完全に隠れるのを待つと、スクロールが下端に達してもカードの端が数 px 残る
  * 画面サイズでバーが出ないため、残り時間が見えなくなる程度で切り替える
@@ -154,6 +159,11 @@ export default function RemotePage() {
   }, [])
   useEffect(() => () => stateCardObserverRef.current?.disconnect(), [])
 
+  // 切断中は操作をブロックするモーダルを表示する(知らずに操作して
+  // コマンドが届かないのを防ぐ)。切断時刻を記録し、猶予を超えても
+  // 復帰していなければ表示する。再接続が完了すると自動的に閉じる
+  const [disconnectedAt, setDisconnectedAt] = useState<number | null>(null)
+
   const sendCommand = (input: RemoteCommandInput) => {
     const requestId = crypto.randomUUID()
     void channelRef.current?.publish(MESSAGE_NAME.command, { ...input, requestId })
@@ -173,11 +183,17 @@ export default function RemotePage() {
     }
     client.connection.on('connected', () => {
       setConnState('connected')
+      setDisconnectedAt(null)
       // 接続・再接続のたびに最新状態へ同期する(サイネージ側が正)
       requestState()
     })
-    client.connection.on('disconnected', () => setConnState('disconnected'))
-    client.connection.on('suspended', () => setConnState('disconnected'))
+    const onDisconnected = () => {
+      setConnState('disconnected')
+      // 再通知されても最初の切断時刻を保持する(モーダル表示の起点)
+      setDisconnectedAt((prev) => prev ?? Date.now())
+    }
+    client.connection.on('disconnected', onDisconnected)
+    client.connection.on('suspended', onDisconnected)
     // トークン取得不能など回復見込みの無い失敗。再読み込みを案内する
     client.connection.on('failed', () => setConnState('failed'))
     void channel.subscribe(MESSAGE_NAME.state, (message) => {
@@ -277,6 +293,11 @@ export default function RemotePage() {
       : `LEVEL ${snapshot?.levelNumber ?? '-'}`
   const showSpinner = !snapshot && connState !== 'failed'
   const locked = showSpinner || connState === 'failed' || finished
+  // now は 500ms ごとに進むため、表示は猶予+最大 500ms 後になる
+  const showDisconnectModal =
+    connState === 'disconnected' &&
+    disconnectedAt !== null &&
+    now - disconnectedAt >= DISCONNECT_MODAL_DELAY_MS
   const levelDurationSec = snapshot?.levelDurationMs
     ? Math.round(snapshot.levelDurationMs / 1000)
     : 0
@@ -700,6 +721,21 @@ export default function RemotePage() {
             ) : (
               <span className={styles.miniBlinds}></span>
             )}
+          </div>
+        )}
+
+        {/* 切断中の操作防止モーダル(再接続が完了すると自動的に閉じる) */}
+        {showDisconnectModal && snapshot && !finished && (
+          <div className={styles.disconnectOverlay} role="alert">
+            <div className={styles.disconnectCard}>
+              <div className={styles.spinner}></div>
+              <div className={styles.disconnectTitle}>接続が切れました</div>
+              <p className={styles.disconnectNote}>
+                再接続しています…
+                <br />
+                このまましばらくお待ちください。
+              </p>
+            </div>
           </div>
         )}
 
