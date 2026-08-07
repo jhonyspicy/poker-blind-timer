@@ -378,7 +378,7 @@ export default function HomePage() {
             <div id="pairing-dialog-title" className={styles.dialogTitle}>
               {pairing.mode === 'resume' ? 'トーナメントを再開' : 'トーナメントを開始'}
             </div>
-            <div className={styles.dialogBody}>「{timerName(pairing.config)}」</div>
+            <div className={styles.dialogBody}>{timerName(pairing.config)}</div>
             {pairing.phase === 'connecting' && (
               <div className={styles.pairingStatus}>少々お待ちください…</div>
             )}
@@ -388,7 +388,14 @@ export default function HomePage() {
                   <div className={styles.qrBox}>
                     <QRCodeSVG value={pairing.remoteUrl} size={200} marginSize={2} />
                   </div>
-                  <div className={styles.pairingUrl}>{pairing.remoteUrl}</div>
+                  <a
+                    className={styles.pairingUrl}
+                    href={pairing.remoteUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {pairing.remoteUrl}
+                  </a>
                   {pairing.phase === 'waiting-remote' ? (
                     <div className={styles.pairingStatus}>操作端末で開いてください</div>
                   ) : (

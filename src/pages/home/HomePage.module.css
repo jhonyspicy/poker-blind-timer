@@ -301,10 +301,12 @@
 }
 
 .pairingUrl {
-  font-size: 12px;
-  color: var(--muted);
+  display: block;
+  font-size: 15px;
+  color: var(--accent);
   word-break: break-all;
   text-align: center;
+  text-decoration: underline;
 }
 
 .pairingStatus {
