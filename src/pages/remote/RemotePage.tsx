@@ -210,6 +210,9 @@ export default function RemotePage() {
         slideRef.current = 0
         setSlide(0)
       }
+      // トーナメント終了後は操作できないため、接続を閉じて余計な
+      // メッセージのやり取りをしない(終了画面は最後のスナップショットで表示し続ける)
+      if (data.status === 'finished') client.close()
     })
     // サイネージ側の接続検知(presence)のため入室を宣言する
     void channel.presence.enter({ role: 'remote' }).catch(() => {
@@ -311,6 +314,16 @@ export default function RemotePage() {
   const addAddon = () => {
     sendCommand({ type: 'HISTORY_ADD', command: 'addon', chip: addonChipValue })
     setAddonChip('')
+  }
+  const addBust = () => {
+    // 残り 2 人でのバストは優勝を確定させ、以降の操作は取り消せないため確認を挟む
+    if (
+      snapshot?.stats.currentPlayers === 2 &&
+      !window.confirm('優勝を決定します。この操作は取り消せません。本当によろしいですか?')
+    ) {
+      return
+    }
+    sendCommand({ type: 'HISTORY_ADD', command: 'bust' })
   }
 
   /** 履歴に出てくるチップ量(重複なし・降順)をクイック入力候補にする */
@@ -573,11 +586,7 @@ export default function RemotePage() {
                 {started && (
                   <>
                     <div className={styles.bustWrap}>
-                      <button
-                        type="button"
-                        className={styles.bustBtn}
-                        onClick={() => sendCommand({ type: 'HISTORY_ADD', command: 'bust' })}
-                      >
+                      <button type="button" className={styles.bustBtn} onClick={addBust}>
                         <IconUserMinus className={styles.bustIcon} />
                         バスト
                       </button>

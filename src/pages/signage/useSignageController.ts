@@ -51,6 +51,8 @@ const START_SCREEN_DELAY_MS = 7_000
 const START_TIMER_DELAY_MS = 8_000
 /** 優勝演出の再生開始から優勝画面へ遷移するまでの時間 */
 const CHAMPION_SCREEN_DELAY_MS = 7_000
+/** 優勝確定から Ably 接続を切断するまでの猶予(最終スナップショットの配信を待つ) */
+const CHAMPION_DISCONNECT_DELAY_MS = 5_000
 
 export type SignageControllerState = 'loading' | 'no-session' | SignageData
 
@@ -77,6 +79,7 @@ export function useSignageController(): SignageControllerState {
     setSession(next)
   }, [])
   const channelRef = useRef<Ably.RealtimeChannel | null>(null)
+  const clientRef = useRef<Ably.Realtime | null>(null)
   const processedRequestIds = useRef(new Set<string>())
   const prevLevelIndexRef = useRef<number | null>(null)
   const warnedLevelRef = useRef<number | null>(null)
@@ -178,6 +181,8 @@ export function useSignageController(): SignageControllerState {
       const current = sessionRef.current
       const cfg = configRef.current
       if (!current || !cfg) return
+      // 優勝確定後はトーナメント終了。取り消しも含めリモコンからの入力をすべて拒否する
+      if (current.playedEffects?.includes('champion')) return
       if (processedRequestIds.current.has(command.requestId)) return
       processedRequestIds.current.add(command.requestId)
       const nowMs = Date.now()
@@ -255,10 +260,16 @@ export function useSignageController(): SignageControllerState {
   // ---- Ably 接続(保存済みチャンネルへ再接続) ----
   useEffect(() => {
     if (loaded !== 'ok') return
+    // 優勝確定で終了済みのトーナメントでは接続しない(リロード時)。
+    // 優勝演出中(タイマー停止前)のリロードでは、終了スナップショットを
+    // リモコンへ届けるため接続する
+    const stored = sessionRef.current
+    if (stored?.playedEffects?.includes('champion') && stored.timer.status === 'finished') return
     const channelId = sessionRef.current?.channelId
     if (!channelId || !isPairingConfigured()) return
     const client = createRealtimeClient(channelId)
     const channel = client.channels.get(ablyChannelName(channelId))
+    clientRef.current = client
     channelRef.current = channel
     void channel.subscribe(MESSAGE_NAME.command, (message) => {
       applyCommandRef.current(message.data as RemoteCommand)
@@ -276,9 +287,36 @@ export function useSignageController(): SignageControllerState {
     }
     return () => {
       channelRef.current = null
+      clientRef.current = null
       client.close()
     }
   }, [loaded])
+
+  // ---- 優勝確定後のタイマー停止と切断 ----
+  // タイマーは優勝画面へ切り替わるタイミング(演出のホールド解除時)で止める。
+  // 優勝確定と同時に止めると、演出動画(透過)の背後に見えるタイマー画面が
+  // 初期表示に戻ってしまうため
+  const championDecided = session?.playedEffects?.includes('champion') ?? false
+  useEffect(() => {
+    if (!championDecided || championHold) return
+    const current = sessionRef.current
+    if (!current || current.timer.status === 'finished') return
+    commitSession({ ...current, timer: { status: 'finished' } })
+  }, [championDecided, championHold, commitSession])
+
+  // トーナメント終了後に余計なメッセージをやり取りしないよう、終了スナップショットの
+  // 配信を待ってから Ably 接続を閉じる
+  const championEnded = championDecided && session?.timer.status === 'finished'
+  useEffect(() => {
+    if (!championEnded) return
+    const id = window.setTimeout(() => {
+      const client = clientRef.current
+      channelRef.current = null
+      clientRef.current = null
+      client?.close()
+    }, CHAMPION_DISCONNECT_DELAY_MS)
+    return () => window.clearTimeout(id)
+  }, [championEnded])
 
   // ---- タイマーの進行(自動遷移・効果音) ----
   useEffect(() => {
@@ -292,8 +330,12 @@ export function useSignageController(): SignageControllerState {
       const resolved = resolveTimer(current.timer, cfg.structure, nowMs)
       const index =
         resolved.status === 'running' || resolved.status === 'paused' ? resolved.levelIndex : null
+      // 優勝確定後は優勝画面への切り替えまでタイマーが動き続けるが、
+      // トーナメントは終了しているためレベル進行の効果音は鳴らさない
+      const championDecided = current.playedEffects?.includes('champion') ?? false
       // レベル切り替わりの効果音(自動遷移・手動どちらも tick 側で一括検知)
       if (
+        !championDecided &&
         index !== null &&
         prevLevelIndexRef.current !== null &&
         index > prevLevelIndexRef.current
@@ -304,7 +346,7 @@ export function useSignageController(): SignageControllerState {
       }
       prevLevelIndexRef.current = index
       // レベルアップ 10 秒前の予告音(次の項目がブラインドのときだけ)
-      if (resolved.status === 'running') {
+      if (!championDecided && resolved.status === 'running') {
         const rem = remainingMs(resolved, cfg.structure, nowMs)
         const followingBlind = (() => {
           for (let i = resolved.levelIndex + 1; i < cfg.structure.length; i++) {
