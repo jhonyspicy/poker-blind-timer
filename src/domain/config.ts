@@ -24,9 +24,20 @@ export function createNewConfig(now: number = Date.now()): TournamentConfig {
   }
 }
 
+/** 他の保存済み設定と同じタイトル(前後の空白は無視)か。自分自身(同じ id)は除外する */
+export function isTitleTaken(config: TournamentConfig, existing: TournamentConfig[]): boolean {
+  const title = config.title.trim()
+  return existing.some((other) => other.id !== config.id && other.title.trim() === title)
+}
+
 /** タイマーとして成立しない設定を保存前に検出する。エラーが無ければ空配列 */
 export function validateConfig(config: TournamentConfig): string[] {
   const errors: string[] = []
+
+  // タイトルは一覧での識別に使うため必須(空白のみも不可)
+  if (!config.title.trim()) {
+    errors.push('トーナメントタイトルを入力してください')
+  }
 
   const blinds = config.structure.filter((item) => item.kind === 'blind')
   if (blinds.length === 0) {

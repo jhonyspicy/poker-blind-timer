@@ -89,10 +89,17 @@ export default function HomePage() {
 
   const handleDuplicate = async (config: TournamentConfig) => {
     const now = Date.now()
+    // タイトルは一意のため、既に同名のコピーがあれば連番を付けて衝突を避ける
+    const existingTitles = new Set((await listConfigs()).map((c) => c.title))
+    const baseTitle = `${config.title || '無題'} のコピー`
+    let title = baseTitle
+    for (let n = 2; existingTitles.has(title); n++) {
+      title = `${baseTitle} ${n}`
+    }
     const copy: TournamentConfig = {
       ...structuredClone(config),
       id: crypto.randomUUID(),
-      title: `${config.title || '無題'} のコピー`,
+      title,
       createdAt: now,
       updatedAt: now,
     }

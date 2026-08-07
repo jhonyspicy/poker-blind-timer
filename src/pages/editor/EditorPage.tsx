@@ -5,6 +5,7 @@ import {
   createBreak,
   createLateRegClose,
   createNewConfig,
+  isTitleTaken,
   validateConfig,
 } from '../../domain/config'
 import {
@@ -13,7 +14,7 @@ import {
   type StructureTemplate,
 } from '../../domain/structureTemplates'
 import type { BlindLevel, StructureItem, TournamentConfig } from '../../domain/types'
-import { getConfig, loadRoom, saveConfig } from '../../storage/db'
+import { getConfig, listConfigs, loadRoom, saveConfig } from '../../storage/db'
 import styles from './EditorPage.module.css'
 
 function structureItemLabel(item: StructureItem, index: number): string {
@@ -194,7 +195,15 @@ export default function EditorPage() {
   }
 
   const handleSave = async () => {
-    const validationErrors = validateConfig(draft)
+    // 前後の空白だけが違う同名タイトルを許さないため、トリムした形で検証・保存する
+    const normalized = { ...draft, title: draft.title.trim() }
+    const validationErrors = validateConfig(normalized)
+    // タイトルはタイマーの識別に使うため一意にする(空の場合は必須エラーのみ表示)
+    if (normalized.title && isTitleTaken(normalized, await listConfigs())) {
+      validationErrors.push(
+        '同じ名前のタイマーが既にあります。別のトーナメントタイトルにしてください',
+      )
+    }
     // 店名は必須。トップページを経由せず /editor を直接開いた場合もここで止める
     if (!isEditing) {
       const room = await loadRoom()
@@ -204,7 +213,7 @@ export default function EditorPage() {
     }
     setErrors(validationErrors)
     if (validationErrors.length > 0) return
-    await saveConfig({ ...draft, updatedAt: Date.now() })
+    await saveConfig({ ...normalized, updatedAt: Date.now() })
     navigate('/')
   }
 
