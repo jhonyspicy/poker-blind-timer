@@ -1,0 +1,323 @@
+/* ストラクチャータブ(リモコン)。配色は RemotePage.module.css と同じ Nocturne 準拠 */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.headTitle {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #a9b0c0;
+}
+
+.headActions {
+  display: flex;
+  gap: 8px;
+}
+
+.btnBase {
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.btnBase:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.btnEdit {
+  composes: btnBase;
+  background: #1b2130;
+  border: 1px solid #2a3346;
+  color: #c8cddb;
+}
+
+.btnEdit:not(:disabled):active {
+  background: #222a3b;
+}
+
+.btnGhost {
+  composes: btnBase;
+  background: none;
+  border: 1px solid #2a3346;
+  color: #8b93a7;
+}
+
+.btnGhost:not(:disabled):active {
+  background: #171c28;
+}
+
+.btnApply {
+  composes: btnBase;
+  background: #9184d9;
+  border: none;
+  color: #14121f;
+}
+
+.btnApply:not(:disabled):active {
+  background: #a196e0;
+}
+
+.caption {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #7d8598;
+}
+
+.noticeSuccess {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #3ddc84;
+  background: rgba(61, 220, 132, 0.08);
+  border: 1px solid rgba(61, 220, 132, 0.3);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.noticeConflict {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #e8b26a;
+  background: rgba(224, 179, 85, 0.08);
+  border: 1px solid rgba(224, 179, 85, 0.35);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.errorBox {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #f0a2a1;
+  background: rgba(224, 96, 95, 0.08);
+  border: 1px solid rgba(224, 96, 95, 0.35);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.rowWrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.rowBase {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #141924;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 10px;
+  min-height: 52px;
+  margin-bottom: 4px;
+}
+
+.row {
+  composes: rowBase;
+}
+
+.rowPast {
+  composes: rowBase;
+  opacity: 0.45;
+}
+
+.rowCurrent {
+  composes: rowBase;
+  border-color: #4a4066;
+  background: #181527;
+}
+
+.rowLabel {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #e0b355;
+  min-width: 52px;
+  flex-shrink: 0;
+}
+
+.rowValue {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #dfe2ea;
+  font-variant-numeric: tabular-nums;
+}
+
+.rowMinutes {
+  font-size: 12px;
+  font-weight: 500;
+  color: #7d8598;
+  margin-left: auto;
+  padding-right: 2px;
+}
+
+.currentBadge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #c3bbe8;
+  background: rgba(145, 132, 217, 0.15);
+  border-radius: 99px;
+  padding: 4px 10px;
+  flex-shrink: 0;
+}
+
+/* — 編集行 — */
+.rowEdit {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+}
+
+.rowEditNote {
+  font-size: 13px;
+  color: #8b93a7;
+}
+
+.fieldWrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fieldLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: #7d8598;
+  letter-spacing: 0.04em;
+}
+
+.fieldInput {
+  width: 100%;
+  height: 40px;
+  border-radius: 6px;
+  color: #e9e9ed;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 0 8px;
+  outline: none;
+  box-sizing: border-box;
+  background: #0b0e14;
+  border: 1px solid #2f3a4f;
+}
+
+.fieldInput:focus {
+  border-color: #9184d9;
+  box-shadow: 0 0 0 2px rgba(145, 132, 217, 0.22);
+}
+
+.deleteBtn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid #2a3346;
+  border-radius: 8px;
+  color: #e0605f;
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+  touch-action: manipulation;
+}
+
+.deleteBtn:active {
+  background: rgba(224, 96, 95, 0.12);
+}
+
+/* — 項目の挿入 — */
+.insertBar {
+  height: 28px;
+  margin-bottom: 4px;
+  background: none;
+  border: 1px dashed #2a3346;
+  border-radius: 8px;
+  color: #5d6579;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.insertBar:active {
+  background: #12161f;
+  color: #9184d9;
+}
+
+.insertChoices {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.insertChoice {
+  flex: 1;
+  height: 44px;
+  background: #1b2130;
+  border: 1px solid #3b3358;
+  border-radius: 8px;
+  color: #c3bbe8;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.insertChoice:active {
+  background: #222a3b;
+}
+
+.insertCancel {
+  width: 44px;
+  height: 44px;
+  background: none;
+  border: 1px solid #2a3346;
+  border-radius: 8px;
+  color: #8b93a7;
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+  touch-action: manipulation;
+}
+
+.empty {
+  font-size: 13px;
+  color: #7d8598;
+  text-align: center;
+  padding: 16px 0;
+}

@@ -10,9 +10,10 @@ import {
 } from '../../realtime/connection'
 import { MESSAGE_NAME, type RemoteCommandInput, type StateSnapshot } from '../../realtime/messages'
 import styles from './RemotePage.module.css'
+import StructureTab from './StructureTab'
 
 type ConnState = 'connecting' | 'connected' | 'disconnected' | 'failed'
-type Tab = 'control' | 'history'
+type Tab = 'control' | 'structure' | 'history'
 
 const HISTORY_LABEL = { entry: 'エントリー', addon: 'アドオン', bust: 'バスト' } as const
 /** START 送信後にサイネージから応答が無い場合、開始スライダーを元に戻すまでの時間 */
@@ -104,6 +105,12 @@ const IconFlag = ({ className }: IconProps) => (
   <svg viewBox="0 0 24 24" className={className} {...strokeProps}>
     <path d="M5 21V4" />
     <path d="M5 4c4.5-2.2 9 2.2 14 0v10c-5 2.2-9.5-2.2-14 0" />
+  </svg>
+)
+const IconRows = ({ className }: IconProps) => (
+  <svg viewBox="0 0 24 24" className={className} {...strokeProps}>
+    <rect x="3.5" y="4.5" width="17" height="6" rx="1.5" />
+    <rect x="3.5" y="13.5" width="17" height="6" rx="1.5" />
   </svg>
 )
 
@@ -663,6 +670,11 @@ export default function RemotePage() {
               </>
             )}
 
+            {/* ストラクチャーの閲覧・編集(未来の項目のみ) */}
+            {tab === 'structure' && snapshot && (
+              <StructureTab snapshot={snapshot} sendCommand={sendCommand} />
+            )}
+
             {/* 履歴一覧(新しい順) */}
             {tab === 'history' && (
               <div className={styles.historyList}>
@@ -758,6 +770,15 @@ export default function RemotePage() {
           >
             <IconSliders className={styles.tabIcon} />
             <span className={styles.tabLabel}>コントロール</span>
+          </button>
+          <button
+            type="button"
+            disabled={locked}
+            className={tab === 'structure' ? styles.tabBtnActive : styles.tabBtn}
+            onClick={() => setTab('structure')}
+          >
+            <IconRows className={styles.tabIcon} />
+            <span className={styles.tabLabel}>ストラクチャー</span>
           </button>
           <button
             type="button"

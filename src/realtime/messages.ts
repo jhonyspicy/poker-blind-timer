@@ -1,4 +1,4 @@
-import type { HistoryCommand, HistoryEntry, TournamentStats } from '../domain/types'
+import type { HistoryCommand, HistoryEntry, StructureItem, TournamentStats } from '../domain/types'
 
 /**
  * リモコン → サイネージのコマンド。増減量ではなく操作意図を送り、適用結果は
@@ -15,6 +15,8 @@ export type RemoteCommand =
   | { type: 'NEXT_LEVEL'; requestId: string }
   | { type: 'PREV_LEVEL'; requestId: string }
   | { type: 'SET_REMAINING'; requestId: string; remainingMs: number }
+  /** ストラクチャー編集(全量)。未来の項目のみの変更かどうかはサイネージが検証する */
+  | { type: 'STRUCTURE_UPDATE'; requestId: string; structure: StructureItem[] }
   | { type: 'REQUEST_STATE'; requestId: string }
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never
@@ -37,6 +39,10 @@ export interface StateSnapshot {
   title: string
   histories: HistoryEntry[]
   stats: TournamentStats
+  /** 実効ストラクチャー全量(セッション限定の上書き適用後)。リモコンの編集画面用 */
+  structure: StructureItem[]
+  /** 解決済みの現在項目 index。waiting / finished は null */
+  currentIndex: number | null
 }
 
 /** Ably チャンネル上のメッセージ name */

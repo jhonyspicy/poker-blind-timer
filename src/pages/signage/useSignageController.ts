@@ -18,6 +18,7 @@ import {
   setRemainingMs,
   startTimer,
 } from '../../domain/timer'
+import { applyStructureUpdate, effectiveConfig } from '../../domain/structureUpdate'
 import type { SessionState, TournamentConfig } from '../../domain/types'
 import {
   ablyChannelName,
@@ -132,7 +133,7 @@ export function useSignageController(): SignageControllerState {
     try {
       void channelRef.current?.publish(
         MESSAGE_NAME.state,
-        buildSnapshot(config, session, Date.now()),
+        buildSnapshot(effectiveConfig(session, config), session, Date.now()),
       )
     } catch {
       /* 未接続時は何もしない */
@@ -181,8 +182,11 @@ export function useSignageController(): SignageControllerState {
   const applyCommand = useCallback(
     (command: RemoteCommand) => {
       const current = sessionRef.current
-      const cfg = configRef.current
-      if (!current || !cfg) return
+      const baseCfg = configRef.current
+      if (!current || !baseCfg) return
+      // タイマー進行・表示と同じく、コマンドの適用もセッション限定の上書きを
+      // 反映した実効ストラクチャーに対して行う
+      const cfg = effectiveConfig(current, baseCfg)
       // 優勝確定後はトーナメント終了。取り消しも含めリモコンからの入力をすべて拒否する
       if (current.playedEffects?.includes('champion')) return
       if (processedRequestIds.current.has(command.requestId)) return
@@ -242,6 +246,24 @@ export function useSignageController(): SignageControllerState {
         case 'HISTORY_DELETE':
           next = { ...current, histories: deleteHistory(current.histories, command.id) }
           break
+        case 'STRUCTURE_UPDATE': {
+          const applied = applyStructureUpdate(current, baseCfg, command.structure, nowMs)
+          if (applied) {
+            next = applied
+          } else {
+            // 拒否時はセッションを変えず、現在のスナップショットを配信し直して
+            // リモコンを再同期させる(専用の NACK メッセージは持たない)
+            try {
+              void channelRef.current?.publish(
+                MESSAGE_NAME.state,
+                buildSnapshot(cfg, current, nowMs),
+              )
+            } catch {
+              /* 未接続時は何もしない */
+            }
+          }
+          break
+        }
         case 'REQUEST_STATE':
           try {
             void channelRef.current?.publish(MESSAGE_NAME.state, buildSnapshot(cfg, current, nowMs))
@@ -250,7 +272,9 @@ export function useSignageController(): SignageControllerState {
           }
           break
       }
-      if (next) commitSession(applyMilestones(next, cfg, nowMs))
+      // ストラクチャー上書きの採用で締切条件が変わり得るため、演出判定は
+      // 適用後のセッションから導いた実効 config で行う
+      if (next) commitSession(applyMilestones(next, effectiveConfig(next, baseCfg), nowMs))
     },
     [applyMilestones, commitSession],
   )
@@ -282,7 +306,10 @@ export function useSignageController(): SignageControllerState {
     const cfg = configRef.current
     if (current && cfg) {
       try {
-        void channel.publish(MESSAGE_NAME.state, buildSnapshot(cfg, current, Date.now()))
+        void channel.publish(
+          MESSAGE_NAME.state,
+          buildSnapshot(effectiveConfig(current, cfg), current, Date.now()),
+        )
       } catch {
         /* 未接続時は何もしない */
       }
@@ -327,8 +354,9 @@ export function useSignageController(): SignageControllerState {
       const nowMs = Date.now()
       setNow(nowMs)
       const current = sessionRef.current
-      const cfg = configRef.current
-      if (!current || !cfg) return
+      const baseCfg = configRef.current
+      if (!current || !baseCfg) return
+      const cfg = effectiveConfig(current, baseCfg)
       const resolved = resolveTimer(current.timer, cfg.structure, nowMs)
       const index =
         resolved.status === 'running' || resolved.status === 'paused' ? resolved.levelIndex : null
@@ -390,7 +418,13 @@ export function useSignageController(): SignageControllerState {
     startPendingRef.current = false
     if (!current || !cfg || current.timer.status !== 'waiting') return
     const nowMs = Date.now()
-    commitSession(applyMilestones({ ...current, timer: startTimer(nowMs) }, cfg, nowMs))
+    commitSession(
+      applyMilestones(
+        { ...current, timer: startTimer(nowMs) },
+        effectiveConfig(current, cfg),
+        nowMs,
+      ),
+    )
   }, [applyMilestones, commitSession])
 
   const onOverlayStarted = useCallback(
@@ -433,14 +467,16 @@ export function useSignageController(): SignageControllerState {
   if (loaded === 'loading') return 'loading'
   if (loaded === 'no-session' || !session || !config) return 'no-session'
 
+  // 画面描画にもセッション限定の上書きを反映した実効 config を渡す
+  const displayConfig = effectiveConfig(session, config)
   const stats = deriveStats(session.histories)
-  const resolved = resolveTimer(session.timer, config.structure, now)
+  const resolved = resolveTimer(session.timer, displayConfig.structure, now)
   const onBreak =
     (resolved.status === 'running' || resolved.status === 'paused') &&
-    config.structure[resolved.levelIndex]?.kind === 'break'
+    displayConfig.structure[resolved.levelIndex]?.kind === 'break'
   // レイトレジ受付中はエントリーで人数が戻り得るため優勝を確定させない。
   // 優勝確定でも championHold の間(優勝演出の再生開始+7 秒まで)は元の画面に留まる
-  const lateRegOpen = lateRegStatus(session.timer, config.structure, now).kind === 'open'
+  const lateRegOpen = lateRegStatus(session.timer, displayConfig.structure, now).kind === 'open'
   const phase: SignagePhase =
     isChampionDecided(stats) && !lateRegOpen && !championHold
       ? 'champion'
@@ -454,7 +490,7 @@ export function useSignageController(): SignageControllerState {
 
   return {
     session,
-    config,
+    config: displayConfig,
     roomName,
     now,
     phase,

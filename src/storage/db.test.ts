@@ -113,6 +113,19 @@ describe('session ストア', () => {
     expect(await loadSession()).toEqual(session)
   })
 
+  it('ストラクチャー上書き(structureOverride)も一緒に復元される', async () => {
+    const overridden: SessionState = {
+      ...session,
+      structureOverride: [
+        { kind: 'blind', sb: 100, bb: 200, ante: 200, durationMinutes: 20 },
+        { kind: 'break', durationMinutes: 5 },
+        { kind: 'blind', sb: 200, bb: 400, ante: 400, durationMinutes: 15 },
+      ],
+    }
+    await saveSession(overridden)
+    expect(await loadSession()).toEqual(overridden)
+  })
+
   it('保存は常に 1 件で上書きされる', async () => {
     await saveSession(session)
     const paused: SessionState = {

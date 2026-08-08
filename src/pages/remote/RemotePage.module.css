@@ -757,7 +757,7 @@
 .tabbar {
   flex: none;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   background: #10141d;
   border-top: 1px solid #1e2533;
   padding: 8px 10px calc(14px + env(safe-area-inset-bottom));

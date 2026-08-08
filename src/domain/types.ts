@@ -77,6 +77,12 @@ export interface SessionState {
   /** ペアリングに使用する Ably チャンネル ID。サイネージのリロード時の再接続に使う */
   channelId: string
   timer: TimerState
+  /**
+   * リモコンからのストラクチャー編集によるセッション限定の上書き(全量)。
+   * 保存済み設定(configs)は変更せず、このトーナメントの間だけ有効。
+   * 未定義なら設定のストラクチャーをそのまま使う
+   */
+  structureOverride?: StructureItem[]
   histories: HistoryEntry[]
   /** 次に採番する履歴 id */
   nextHistoryId: number

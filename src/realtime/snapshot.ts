@@ -39,5 +39,7 @@ export function buildSnapshot(
     title: config.title,
     histories: session.histories,
     stats: deriveStats(session.histories),
+    structure: config.structure,
+    currentIndex: timer.status === 'running' || timer.status === 'paused' ? timer.levelIndex : null,
   }
 }

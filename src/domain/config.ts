@@ -1,4 +1,10 @@
-import type { BlindLevel, BreakItem, LateRegCloseItem, TournamentConfig } from './types'
+import type {
+  BlindLevel,
+  BreakItem,
+  LateRegCloseItem,
+  StructureItem,
+  TournamentConfig,
+} from './types'
 
 /** base を渡すとその値を引き継ぐ(エディタで直近レベルを初期値にするため) */
 export function createBlindLevel(base?: BlindLevel): BlindLevel {
@@ -39,17 +45,29 @@ export function validateConfig(config: TournamentConfig): string[] {
     errors.push('トーナメントタイトルを入力してください')
   }
 
-  const blinds = config.structure.filter((item) => item.kind === 'blind')
+  errors.push(...validateStructure(config.structure))
+
+  return errors
+}
+
+/**
+ * ストラクチャー単体の検証。エディタの保存前チェックに加え、リモコンからの
+ * ストラクチャー編集(送信前の即時チェックとサイネージ側の権威的検証)でも使う
+ */
+export function validateStructure(structure: StructureItem[]): string[] {
+  const errors: string[] = []
+
+  const blinds = structure.filter((item) => item.kind === 'blind')
   if (blinds.length === 0) {
     errors.push('ブラインドレベルを 1 つ以上追加してください')
   }
 
-  const lateRegCloses = config.structure.filter((item) => item.kind === 'lateRegClose')
+  const lateRegCloses = structure.filter((item) => item.kind === 'lateRegClose')
   if (lateRegCloses.length > 1) {
     errors.push('レイトレジストレーション締め切りは 1 つまでです')
   }
 
-  config.structure.forEach((item, index) => {
+  structure.forEach((item, index) => {
     if (item.kind === 'lateRegClose') return
     const label = item.kind === 'break' ? `${index + 1} 番目(ブレイク)` : `${index + 1} 番目`
     if (!Number.isFinite(item.durationMinutes) || item.durationMinutes <= 0) {
