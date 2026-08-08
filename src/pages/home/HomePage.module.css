@@ -144,6 +144,12 @@
   background: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 9.8px;
+}
+
 .createButton {
   font-size: 17px;
   padding: 11.2px 22.4px;

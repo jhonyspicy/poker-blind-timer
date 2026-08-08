@@ -2,6 +2,13 @@ import * as Ably from 'ably'
 import { QRCodeSVG } from 'qrcode.react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
+import {
+  allExportFileName,
+  buildExportFile,
+  parseExportFile,
+  singleExportFileName,
+  toImportedConfigs,
+} from '../../domain/configExport'
 import { deriveStats, isChampionDecided } from '../../domain/stats'
 import type { SessionState, TournamentConfig } from '../../domain/types'
 import {
@@ -29,6 +36,17 @@ function timerName(config: TournamentConfig): string {
   return config.title || '(無題)'
 }
 
+/** JSON をファイルとしてダウンロードさせる。ライブラリを使わず Blob + a[download] で行う */
+function downloadJson(filename: string, data: unknown) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  anchor.click()
+  URL.revokeObjectURL(url)
+}
+
 /** 開始/再開ペアリングモーダルの状態(realtime-pairing 仕様の 4 段階) */
 interface PairingState {
   config: TournamentConfig
@@ -54,6 +72,8 @@ export default function HomePage() {
   const toastTimer = useRef<number | undefined>(undefined)
   /** ペアリング中の Ably クライアント。閉じ忘れによるリークを防ぐ */
   const pairingClient = useRef<Ably.Realtime | null>(null)
+  /** インポート用の非表示ファイル入力 */
+  const importInput = useRef<HTMLInputElement | null>(null)
 
   const refresh = useCallback(async () => {
     setConfigs(await listConfigs())
@@ -106,6 +126,37 @@ export default function HomePage() {
     await saveConfig(copy)
     await refresh()
     showToast(`「${timerName(config)}」を複製しました`)
+  }
+
+  const handleExportAll = async () => {
+    const all = await listConfigs()
+    if (all.length === 0) {
+      showToast('エクスポートする設定がありません')
+      return
+    }
+    downloadJson(allExportFileName(), buildExportFile(all))
+    showToast(`${all.length} 件の設定をエクスポートしました`)
+  }
+
+  const handleExportOne = (config: TournamentConfig) => {
+    downloadJson(singleExportFileName(config.title), buildExportFile([config]))
+    showToast(`「${timerName(config)}」をエクスポートしました`)
+  }
+
+  const handleImportFile = async (file: File) => {
+    const result = parseExportFile(await file.text())
+    if (!result.ok) {
+      showToast(`インポートできません: ${result.error}`)
+      return
+    }
+    // 上書きによるデータ消失を避けるため常に新規追加。タイトル衝突は連番で回避する
+    const existingTitles = (await listConfigs()).map((c) => c.title)
+    const imported = toImportedConfigs(result.configs, existingTitles)
+    for (const config of imported) {
+      await saveConfig(config)
+    }
+    await refresh()
+    showToast(`${imported.length} 件の設定をインポートしました`)
   }
 
   const handleConfirmRemove = async () => {
@@ -274,13 +325,44 @@ export default function HomePage() {
             )}
             <span className={styles.subtitle}>タイマー設定 ・ {configs.length} 件</span>
           </div>
-          <button
-            type="button"
-            className={`${styles.btnPrimary} ${styles.createButton}`}
-            onClick={handleCreateTimer}
-          >
-            <span className={styles.plusIcon}>＋</span>新規タイマー作成
-          </button>
+          <div className={styles.headerActions}>
+            <button
+              type="button"
+              className={styles.btnSecondary}
+              onClick={() => importInput.current?.click()}
+            >
+              インポート
+            </button>
+            {configs.length > 0 && (
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => void handleExportAll()}
+              >
+                すべてエクスポート
+              </button>
+            )}
+            <button
+              type="button"
+              className={`${styles.btnPrimary} ${styles.createButton}`}
+              onClick={handleCreateTimer}
+            >
+              <span className={styles.plusIcon}>＋</span>新規タイマー作成
+            </button>
+            <input
+              ref={importInput}
+              type="file"
+              accept=".json,application/json"
+              hidden
+              aria-label="設定ファイルをインポート"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                // 同じファイルを再選択しても change が発火するよう毎回リセットする
+                e.target.value = ''
+                if (file) void handleImportFile(file)
+              }}
+            />
+          </div>
         </div>
         <main className={styles.list}>
           {configs.map((config) => (
@@ -317,6 +399,13 @@ export default function HomePage() {
                   onClick={() => void handleDuplicate(config)}
                 >
                   複製
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => handleExportOne(config)}
+                >
+                  エクスポート
                 </button>
                 <button
                   type="button"
