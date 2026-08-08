@@ -153,12 +153,14 @@ export function useSignageController(): SignageControllerState {
       }
       // レイトレジ受付中はエントリーで人数が増え得るため、インマネ・ヘッズアップ・優勝は
       // 確定しない。締切後はエントリーが増えないので、バストが無くても現在人数だけで確定する。
-      // 締切マーカーの無いストラクチャーでは、エントリー入力途中の誤発火を防ぐため
-      // 「1 人以上バストしている」ことを条件にする
+      // 締切マーカーの無いストラクチャーはフリーズアウト(開始後のエントリー無し)とみなし、
+      // 開始後はバストが無くても現在人数だけで確定する(開始直後にインマネ等が決まり得る)。
+      // 開始前はエントリー入力途中の誤発火を防ぐため「1 人以上バストしている」ことを条件にする
       const lateReg = lateRegStatus(next.timer, cfg.structure, nowMs)
       const decided =
         lateReg.kind === 'closed' ||
-        (lateReg.kind === 'none' && stats.totalEntries > stats.currentPlayers)
+        (lateReg.kind === 'none' &&
+          (next.timer.status !== 'waiting' || stats.totalEntries > stats.currentPlayers))
       if (decided) {
         if (
           cfg.prizes.length > 0 &&
