@@ -54,7 +54,10 @@ export function remainingMs(state: TimerState, structure: StructureItem[], now: 
   if (resolved.status === 'paused') {
     return Math.max(0, duration - resolved.elapsedInLevelMs)
   }
-  return Math.max(0, duration - (now - resolved.levelStartedAt))
+  // 表示用の now は描画間隔の都合で levelStartedAt より古いことがある
+  // (レベル移動・再開直後など)。持ち時間を超える値を返すと切り上げ表示が
+  // 1 秒多くなるため、持ち時間を上限にする
+  return Math.min(duration, Math.max(0, duration - (now - resolved.levelStartedAt)))
 }
 
 export function pauseTimer(state: TimerState, structure: StructureItem[], now: number): TimerState {

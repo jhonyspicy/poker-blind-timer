@@ -292,7 +292,9 @@ export default function RemotePage() {
   const started = running || paused
   const remainingFromSnapshot = snapshot
     ? running
-      ? Math.max(0, snapshot.remainingMs - (now - snapshot.publishedAt))
+      ? // now はスナップショット受信より古いことがある(500ms 間隔の更新)ため、
+        // 経過を負にせず残り時間がスナップショットの値を超えないようにする
+        Math.max(0, snapshot.remainingMs - Math.max(0, now - snapshot.publishedAt))
       : snapshot.remainingMs
     : 0
   const remaining = sliderSec !== null ? sliderSec * 1000 : remainingFromSnapshot

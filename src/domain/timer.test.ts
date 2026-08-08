@@ -59,6 +59,13 @@ describe('resolveTimer / remainingMs', () => {
     expect(isOnBreak(state, structure, now)).toBe(true)
   })
 
+  it('now が基準時刻より古くても残り時間は持ち時間を超えない', () => {
+    // レベル移動直後は表示側の now がコマンド適用時刻より古いことがある
+    const state = startTimer(T0)
+    const next = nextLevel(state, structure, T0 + 5 * MIN)
+    expect(remainingMs(next, structure, T0 + 5 * MIN - 200)).toBe(20 * MIN)
+  })
+
   it('最終レベルの残り時間が 0 になると finished になる', () => {
     const state = startTimer(T0)
     const total = (20 + 20 + 10 + 15) * MIN
