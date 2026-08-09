@@ -20,7 +20,7 @@ import styles from './StructureTab.module.css'
 const APPLY_TIMEOUT_MS = 5_000
 
 interface DraftRow {
-  /** 行の追加・削除で index がずれても入力欄(uncontrolled)を追跡できるようにする一意キー */
+  /** 行の追加・削除で index がずれても行と入力欄を追跡できるようにする一意キー */
   uid: number
   item: StructureItem
 }
@@ -231,7 +231,7 @@ export default function StructureTab({ snapshot, sendCommand }: StructureTabProp
         type="text"
         inputMode="numeric"
         className={styles.fieldInput}
-        defaultValue={Number.isFinite(value) ? String(value) : ''}
+        value={Number.isFinite(value) ? String(value) : ''}
         onChange={(e) => onValue(Number.parseInt(e.target.value.replace(/[^\d]/g, ''), 10))}
         aria-label={label}
       />
@@ -317,11 +317,13 @@ export default function StructureTab({ snapshot, sendCommand }: StructureTabProp
                   <div className={styles.rowEdit}>
                     {row.item.kind === 'blind' && (
                       <>
+                        {/* 入力の手間を省くため SB から BB(SB×2)、BB から Ante(=BB)を自動補完する。
+                            逆方向(BB→SB、Ante→BB)には伝播しない */}
                         {numberField(row.uid, 'SB', row.item.sb, (sb) =>
-                          updateItem(row.uid, { sb }),
+                          updateItem(row.uid, { sb, bb: sb * 2, ante: sb * 2 }),
                         )}
                         {numberField(row.uid, 'BB', row.item.bb, (bb) =>
-                          updateItem(row.uid, { bb }),
+                          updateItem(row.uid, { bb, ante: bb }),
                         )}
                         {numberField(row.uid, 'Ante', row.item.ante, (ante) =>
                           updateItem(row.uid, { ante }),
