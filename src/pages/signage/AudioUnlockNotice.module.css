@@ -1,0 +1,13 @@
+.notice {
+  position: fixed;
+  right: 1.5vw;
+  bottom: 1.5vw;
+  z-index: 100;
+  padding: 0.6em 1.2em;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #fff;
+  font-size: clamp(14px, 1.4vw, 28px);
+  pointer-events: none;
+}
