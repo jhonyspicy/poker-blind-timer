@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { deriveStats } from '../../domain/stats'
 import { resolveTheme } from './themes'
 import { useSignageController, type SignageData } from './useSignageController'
+import { useWakeLock } from './useWakeLock'
 import VideoOverlay from './VideoOverlay'
 
 function SignageBody({ data }: { data: SignageData }) {
@@ -46,6 +47,8 @@ function SignageBody({ data }: { data: SignageData }) {
  */
 export default function SignagePage() {
   const state = useSignageController()
+  // 長時間の常時表示を想定し、サイネージ表示中は画面スリープを抑止する
+  useWakeLock()
 
   if (state === 'loading') {
     return null
