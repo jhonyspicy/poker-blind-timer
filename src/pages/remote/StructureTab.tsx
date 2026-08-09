@@ -20,7 +20,7 @@ import styles from './StructureTab.module.css'
 const APPLY_TIMEOUT_MS = 5_000
 
 interface DraftRow {
-  /** 行の追加・削除で index がずれても入力欄(uncontrolled)を追跡できるようにする一意キー */
+  /** 行の追加・削除で index がずれても行と入力欄を追跡できるようにする一意キー */
   uid: number
   item: StructureItem
 }
@@ -43,6 +43,14 @@ export default function StructureTab({ snapshot, sendCommand }: StructureTabProp
   const [notice, setNotice] = useState<Notice>(null)
   /** 挿入位置の選択中 index(splice 位置)。null なら非表示 */
   const [insertAt, setInsertAt] = useState<number | null>(null)
+  /**
+   * 時間一括変更モードの選択範囲(ドラフト行 index)。null ならモード自体が無効。
+   * start が null の間は開始レベルの選択待ち。end が null なら「最後まで」
+   */
+  const [bulkRange, setBulkRange] = useState<{ start: number | null; end: number | null } | null>(
+    null,
+  )
+  const [bulkMinutes, setBulkMinutes] = useState<number>(Number.NaN)
   const [pending, setPending] = useState<StructureItem[] | null>(null)
   const uidRef = useRef(0)
   // タイムアウト処理から最新スナップショットを参照するための ref
@@ -70,6 +78,7 @@ export default function StructureTab({ snapshot, sendCommand }: StructureTabProp
     setPending(null)
     setDraft(null)
     setInsertAt(null)
+    setBulkRange(null)
     setNotice({ kind: 'success', text: 'ストラクチャーを変更しました' })
   }
 
@@ -80,6 +89,7 @@ export default function StructureTab({ snapshot, sendCommand }: StructureTabProp
       setPending(null)
       setDraft(toRows(snapshotRef.current.structure ?? []))
       setInsertAt(null)
+      setBulkRange(null)
       setNotice({
         kind: 'conflict',
         text: 'タイマーの進行と競合したため適用されませんでした。最新の内容を確認してください',
@@ -93,12 +103,14 @@ export default function StructureTab({ snapshot, sendCommand }: StructureTabProp
     setErrors([])
     setNotice(null)
     setInsertAt(null)
+    setBulkRange(null)
   }
 
   const cancelEdit = () => {
     setDraft(null)
     setErrors([])
     setInsertAt(null)
+    setBulkRange(null)
   }
 
   const updateItem = (uid: number, patch: Partial<StructureItem>) => {
@@ -124,6 +136,42 @@ export default function StructureTab({ snapshot, sendCommand }: StructureTabProp
       return next
     })
     setInsertAt(null)
+  }
+
+  const startBulk = () => {
+    setBulkRange({ start: null, end: null })
+    setInsertAt(null)
+  }
+
+  const cancelBulk = () => setBulkRange(null)
+
+  /** 一括変更の範囲選択。最初のタップが開始、以降のタップが終了(開始より前なら開始を選び直す) */
+  const selectBulkRow = (index: number, currentMinutes: number) => {
+    if (!bulkRange) return
+    if (bulkRange.start === null || index < bulkRange.start) {
+      setBulkRange({ start: index, end: null })
+      // 入力の手間を省くため、開始レベルの現在値を初期値にする
+      setBulkMinutes(currentMinutes)
+      return
+    }
+    if (index === bulkRange.start && bulkRange.end === null) return
+    setBulkRange({ start: bulkRange.start, end: index })
+  }
+
+  /** 選択範囲内のブラインドの継続時間をドラフトへ反映する(ブレイクは対象外) */
+  const applyBulk = () => {
+    if (!draft || !bulkRange || bulkRange.start === null) return
+    if (!Number.isFinite(bulkMinutes) || bulkMinutes < 1) return
+    const start = bulkRange.start
+    const last = bulkRange.end ?? draft.length - 1
+    setDraft(
+      draft.map((row, index) =>
+        index >= start && index <= last && row.item.kind === 'blind'
+          ? { ...row, item: { ...row.item, durationMinutes: bulkMinutes } }
+          : row,
+      ),
+    )
+    setBulkRange(null)
   }
 
   /** 挿入位置より前で最後に現れるブラインド(新レベルの初期値の引き継ぎ元) */
@@ -163,6 +211,13 @@ export default function StructureTab({ snapshot, sendCommand }: StructureTabProp
   // 表示用の行(閲覧時はスナップショット、編集時はドラフト)
   const rows: DraftRow[] = draft ?? structure.map((item, index) => ({ uid: index, item }))
   const editing = draft !== null
+  /** 時間一括変更の範囲選択中(選択中は行のタップを範囲選択に割り当てる) */
+  const bulkSelecting = editing && !pending && bulkRange !== null
+  const hasBulkTargets = (draft ?? []).some(
+    (row, index) => index >= minEditIndex && row.item.kind === 'blind',
+  )
+  /** 一括変更範囲の末尾(終了が未選択なら最後まで) */
+  const bulkLast = bulkRange?.end ?? rows.length - 1
 
   /** ブラインド行のレベル番号(ブレイク・マーカーは数えない) */
   const levelNumbers = (() => {
@@ -171,7 +226,7 @@ export default function StructureTab({ snapshot, sendCommand }: StructureTabProp
   })()
 
   const renderInsertBar = (at: number) => {
-    if (!editing || pending) return null
+    if (!editing || pending || bulkSelecting) return null
     if (at < minEditIndex) return null
     if (insertAt !== at) {
       return (
@@ -231,7 +286,7 @@ export default function StructureTab({ snapshot, sendCommand }: StructureTabProp
         type="text"
         inputMode="numeric"
         className={styles.fieldInput}
-        defaultValue={Number.isFinite(value) ? String(value) : ''}
+        value={Number.isFinite(value) ? String(value) : ''}
         onChange={(e) => onValue(Number.parseInt(e.target.value.replace(/[^\d]/g, ''), 10))}
         aria-label={label}
       />
@@ -252,7 +307,13 @@ export default function StructureTab({ snapshot, sendCommand }: StructureTabProp
             >
               キャンセル
             </button>
-            <button type="button" className={styles.btnApply} disabled={!!pending} onClick={apply}>
+            <button
+              type="button"
+              className={styles.btnApply}
+              // 一括変更の範囲選択中は「反映」との押し間違いを防ぐため適用を止める
+              disabled={!!pending || bulkSelecting}
+              onClick={apply}
+            >
               {pending ? '適用中…' : '適用'}
             </button>
           </div>
@@ -281,16 +342,60 @@ export default function StructureTab({ snapshot, sendCommand }: StructureTabProp
           ))}
         </div>
       )}
+      {editing && !pending && !bulkSelecting && (
+        <button
+          type="button"
+          className={styles.bulkBtn}
+          disabled={!hasBulkTargets}
+          onClick={startBulk}
+        >
+          時間をまとめて変更
+        </button>
+      )}
+      {bulkSelecting && bulkRange && (
+        <div className={styles.bulkHintRow}>
+          <span className={styles.bulkHint}>
+            {bulkRange.start === null
+              ? '変更を始めるレベルをタップしてください'
+              : '終わりのレベルをタップすると範囲を狭められます(そのままなら最後まで)'}
+          </span>
+          <button type="button" className={styles.bulkCancel} onClick={cancelBulk}>
+            やめる
+          </button>
+        </div>
+      )}
       <div className={styles.list}>
         {rows.map((row, index) => {
           const locked = !editing || !!pending || index < minEditIndex
           const isCurrent = !editing && snapshot.currentIndex === index
           const pastRow = index < minEditIndex && snapshot.status !== 'waiting'
+          // const 束縛でクロージャ内でも blind に型を絞ったまま使えるようにする
+          const blind = row.item.kind === 'blind' ? row.item : null
+          const bulkSelectable = bulkSelecting && !locked && blind !== null
+          const bulkSelected =
+            bulkSelectable &&
+            bulkRange?.start !== null &&
+            bulkRange !== null &&
+            index >= bulkRange.start &&
+            index <= bulkLast
           return (
             <div key={row.uid} className={styles.rowWrap}>
               {renderInsertBar(index)}
               <div
-                className={isCurrent ? styles.rowCurrent : pastRow ? styles.rowPast : styles.row}
+                className={
+                  bulkSelected
+                    ? styles.rowSelected
+                    : isCurrent
+                      ? styles.rowCurrent
+                      : pastRow
+                        ? styles.rowPast
+                        : styles.row
+                }
+                onClick={
+                  bulkSelectable && blind
+                    ? () => selectBulkRow(index, blind.durationMinutes)
+                    : undefined
+                }
               >
                 <span className={styles.rowLabel}>
                   {row.item.kind === 'blind'
@@ -299,7 +404,7 @@ export default function StructureTab({ snapshot, sendCommand }: StructureTabProp
                       ? 'ブレイク'
                       : 'レジ締切'}
                 </span>
-                {locked ? (
+                {locked || bulkSelecting ? (
                   <span className={styles.rowValue}>
                     {row.item.kind === 'blind' && (
                       <>
@@ -317,11 +422,13 @@ export default function StructureTab({ snapshot, sendCommand }: StructureTabProp
                   <div className={styles.rowEdit}>
                     {row.item.kind === 'blind' && (
                       <>
+                        {/* 入力の手間を省くため SB から BB(SB×2)、BB から Ante(=BB)を自動補完する。
+                            逆方向(BB→SB、Ante→BB)には伝播しない */}
                         {numberField(row.uid, 'SB', row.item.sb, (sb) =>
-                          updateItem(row.uid, { sb }),
+                          updateItem(row.uid, { sb, bb: sb * 2, ante: sb * 2 }),
                         )}
                         {numberField(row.uid, 'BB', row.item.bb, (bb) =>
-                          updateItem(row.uid, { bb }),
+                          updateItem(row.uid, { bb, ante: bb }),
                         )}
                         {numberField(row.uid, 'Ante', row.item.ante, (ante) =>
                           updateItem(row.uid, { ante }),
@@ -345,7 +452,15 @@ export default function StructureTab({ snapshot, sendCommand }: StructureTabProp
                   </div>
                 )}
                 {isCurrent && <span className={styles.currentBadge}>進行中</span>}
-                {!locked && (
+                {bulkSelectable && (
+                  <span
+                    className={bulkSelected ? styles.selectMarkOn : styles.selectMark}
+                    aria-hidden="true"
+                  >
+                    ✓
+                  </span>
+                )}
+                {!locked && !bulkSelecting && (
                   <button
                     type="button"
                     className={styles.deleteBtn}
@@ -362,6 +477,40 @@ export default function StructureTab({ snapshot, sendCommand }: StructureTabProp
         {renderInsertBar(rows.length)}
         {rows.length === 0 && <div className={styles.empty}>ストラクチャー情報がありません</div>}
       </div>
+      {bulkSelecting && bulkRange && bulkRange.start !== null && (
+        <div className={styles.bulkSheet}>
+          <div className={styles.bulkSheetLabel}>
+            {`LV ${levelNumbers[bulkRange.start]} ${
+              bulkRange.end === null ? 'から最後まで' : `〜 LV ${levelNumbers[bulkRange.end]}`
+            }(${
+              rows.filter(
+                (r, i) => i >= (bulkRange.start ?? 0) && i <= bulkLast && r.item.kind === 'blind',
+              ).length
+            } レベル)の時間を変更`}
+          </div>
+          <div className={styles.bulkSheetRow}>
+            <input
+              type="text"
+              inputMode="numeric"
+              className={styles.bulkMinutes}
+              value={Number.isFinite(bulkMinutes) ? String(bulkMinutes) : ''}
+              onChange={(e) =>
+                setBulkMinutes(Number.parseInt(e.target.value.replace(/[^\d]/g, ''), 10))
+              }
+              aria-label="変更後の時間(分)"
+            />
+            <span className={styles.bulkUnit}>分にする</span>
+            <button
+              type="button"
+              className={styles.btnApply}
+              disabled={!Number.isFinite(bulkMinutes) || bulkMinutes < 1}
+              onClick={applyBulk}
+            >
+              反映
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
