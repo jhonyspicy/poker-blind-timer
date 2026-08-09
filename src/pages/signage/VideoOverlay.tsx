@@ -1,19 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { assetUrl } from './preload'
+import type { ThemeId } from '../../domain/theme'
+import { assetUrl, themeAssetPath } from './preload'
 import styles from './VideoOverlay.module.css'
 
 export type VideoEvent = 'tournament-start' | 'in-the-money' | 'heads-up' | 'champion'
 
 /**
  * 演出動画のオーバーレイ再生。webm(映像のみ・透過可)+ogg(音声)を同時再生する。
- * `public/videos/<イベント名>.webm` が無ければ即座に onDone を呼んで何も表示しない。
- * 呼び出し側は key={event} を付けてイベントごとに作り直すこと
+ * `public/themes/<テーマ名>/videos/<イベント名>.webm` が無ければ即座に onDone を呼んで
+ * 何も表示しない。呼び出し側は key={event} を付けてイベントごとに作り直すこと
  */
 export default function VideoOverlay({
+  theme,
   event,
   onDone,
   onStarted,
 }: {
+  theme: ThemeId
   event: VideoEvent
   /** 再生終了・失敗・素材なしのときに 1 回呼ばれる。安定した参照を渡すこと */
   onDone: (event: VideoEvent) => void
@@ -27,9 +30,9 @@ export default function VideoOverlay({
   // 表示中に先読みが完了しても URL を差し替えない(再生が最初からやり直しになる)よう、
   // イベントごとに一度だけ解決する
   const urls = useMemo(() => {
-    const base = `${import.meta.env.BASE_URL}videos/${event}`
+    const base = themeAssetPath(theme, `videos/${event}`)
     return { video: assetUrl(`${base}.webm`), audio: assetUrl(`${base}.ogg`) }
-  }, [event])
+  }, [theme, event])
 
   useEffect(() => {
     doneRef.current = false

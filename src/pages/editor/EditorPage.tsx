@@ -13,6 +13,7 @@ import {
   buildTemplateStructure,
   type StructureTemplate,
 } from '../../domain/structureTemplates'
+import { THEMES, resolveThemeId } from '../../domain/theme'
 import type { BlindLevel, StructureItem, TournamentConfig } from '../../domain/types'
 import { getConfig, listConfigs, loadRoom, saveConfig } from '../../storage/db'
 import styles from './EditorPage.module.css'
@@ -195,8 +196,9 @@ export default function EditorPage() {
   }
 
   const handleSave = async () => {
-    // 前後の空白だけが違う同名タイトルを許さないため、トリムした形で検証・保存する
-    const normalized = { ...draft, title: draft.title.trim() }
+    // 前後の空白だけが違う同名タイトルを許さないため、トリムした形で検証・保存する。
+    // テーマは select の表示(解決済みの値)と保存内容が一致するよう明示的に書き込む
+    const normalized = { ...draft, title: draft.title.trim(), theme: resolveThemeId(draft.theme) }
     const validationErrors = validateConfig(normalized)
     // タイトルはタイマーの識別に使うため一意にする(空の場合は必須エラーのみ表示)
     if (normalized.title && isTitleTaken(normalized, await listConfigs())) {
@@ -265,6 +267,21 @@ export default function EditorPage() {
                 value={draft.title}
                 onChange={(e) => update({ title: e.target.value })}
               />
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="theme">サイネージのテーマ</label>
+              <select
+                id="theme"
+                className={styles.input}
+                value={resolveThemeId(draft.theme)}
+                onChange={(e) => update({ theme: e.target.value })}
+              >
+                {THEMES.map((theme) => (
+                  <option key={theme.id} value={theme.id}>
+                    {theme.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </section>
 

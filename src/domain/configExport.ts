@@ -14,6 +14,8 @@ export interface ExportedConfig {
   title: string
   prizes: Prize[]
   structure: StructureItem[]
+  /** サイネージのテーマ id。テーマ導入前のファイルには無い(= 標準テーマ扱い) */
+  theme?: string
 }
 
 /** 1 件でも全件でも同じ「複数入り」形式に統一し、インポートの入口を 1 つにする */
@@ -36,6 +38,7 @@ export function buildExportFile(
       title: config.title,
       prizes: config.prizes.map((prize) => ({ ...prize })),
       structure: config.structure.map((item) => ({ ...item })),
+      ...(config.theme !== undefined ? { theme: config.theme } : {}),
     })),
   }
 }
@@ -138,6 +141,8 @@ export function parseExportFile(text: string): ParseExportResult {
         description: prize.description,
       })),
       structure: config.structure.map((item) => ({ ...item })),
+      // テーマは任意。欠落・文字列以外は含めず標準テーマ扱いにする(インポートを失敗させない)
+      ...(typeof config.theme === 'string' ? { theme: config.theme } : {}),
     }
     const errors = validateConfig({
       id: '',
@@ -177,6 +182,7 @@ export function toImportedConfigs(
       title,
       prizes: config.prizes,
       structure: config.structure,
+      ...(config.theme !== undefined ? { theme: config.theme } : {}),
       createdAt: timestamp,
       updatedAt: timestamp,
     }

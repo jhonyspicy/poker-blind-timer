@@ -37,6 +37,11 @@ export interface TournamentConfig {
   title: string
   prizes: Prize[]
   structure: StructureItem[]
+  /**
+   * サイネージのテーマ id。未指定(テーマ導入前の旧データ)や不明な値は
+   * resolveThemeId で標準テーマに解決する。不明な値も保持したまま保存してよい
+   */
+  theme?: string
   createdAt: number
   updatedAt: number
 }

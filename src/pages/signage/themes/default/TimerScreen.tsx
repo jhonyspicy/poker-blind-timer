@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { formatBlind, formatChips, formatClock } from '../../domain/format'
+import { formatBlind, formatChips, formatClock } from '../../../../domain/format'
 import {
   currentBlindLevelNumber,
   lateRegStatus,
   msUntilNextBreak,
   nextBlindLevel,
   remainingMs,
-} from '../../domain/timer'
-import type { TimerState, TournamentConfig, TournamentStats } from '../../domain/types'
+} from '../../../../domain/timer'
+import type { TimerState, TournamentConfig, TournamentStats } from '../../../../domain/types'
 import PauseTapeOverlay from './PauseTapeOverlay'
 import TabularNumber from './TabularNumber'
 import TimerBackground, { type TimerBackgroundHandle } from './TimerBackground'

@@ -46,6 +46,12 @@ describe('buildExportFile', () => {
     expect(file.configs[0].structure[0]).not.toBe(config.structure[0])
     expect(file.configs[0].prizes[0]).not.toBe(config.prizes[0])
   })
+
+  it('テーマを含める(未指定の設定にはフィールド自体を含めない)', () => {
+    const file = buildExportFile([sampleConfig({ theme: 'default' }), sampleConfig()])
+    expect(file.configs[0].theme).toBe('default')
+    expect(file.configs[1]).not.toHaveProperty('theme')
+  })
 })
 
 describe('parseExportFile', () => {
@@ -118,6 +124,30 @@ describe('parseExportFile', () => {
     expect(result.ok).toBe(true)
     if (result.ok) expect(result.configs[0].title).toBe('タイトル')
   })
+
+  it('テーマを往復できる', () => {
+    const file = buildExportFile([sampleConfig({ theme: 'default' })])
+    const result = parseExportFile(JSON.stringify(file))
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.configs[0].theme).toBe('default')
+  })
+
+  it('テーマが無い旧ファイルもエラーにしない(標準テーマ扱い)', () => {
+    const file = buildExportFile([sampleConfig()])
+    const result = parseExportFile(JSON.stringify(file))
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.configs[0]).not.toHaveProperty('theme')
+  })
+
+  it('テーマが文字列でないファイルもエラーにしない(フィールドを捨てる)', () => {
+    const file = buildExportFile([sampleConfig()]) as unknown as {
+      configs: Record<string, unknown>[]
+    }
+    file.configs[0].theme = 123
+    const result = parseExportFile(JSON.stringify(file))
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.configs[0]).not.toHaveProperty('theme')
+  })
 })
 
 describe('toImportedConfigs', () => {
@@ -144,6 +174,16 @@ describe('toImportedConfigs', () => {
     const [a, b] = toImportedConfigs(twice, [], 10000)
     expect(a.title).toBe('A')
     expect(b.title).toBe('A 2')
+  })
+
+  it('テーマを引き継ぐ(無い設定にはフィールドを付けない)', () => {
+    const [withTheme, withoutTheme] = toImportedConfigs(
+      [{ ...exported[0], theme: 'default' }, exported[1]],
+      [],
+      10000,
+    )
+    expect(withTheme.theme).toBe('default')
+    expect(withoutTheme).not.toHaveProperty('theme')
   })
 })
 

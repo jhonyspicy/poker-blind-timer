@@ -1,5 +1,5 @@
 /* 優勝画面(デザインモック Champion Signage の移植)。
-   16:9 レターボックスに背景画像(public/images/champion.png)を敷き、
+   16:9 レターボックスに背景画像(public/themes/<テーマ名>/images/champion.png)を敷き、
    上部に店名・トーナメント名を金箔文字で重ねる */
 
 .page {

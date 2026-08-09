@@ -1,5 +1,5 @@
-import { formatBlind } from '../../domain/format'
-import type { TournamentConfig, TournamentStats } from '../../domain/types'
+import { formatBlind } from '../../../../domain/format'
+import type { TournamentConfig, TournamentStats } from '../../../../domain/types'
 import ChipFloatBackground from './ChipFloatBackground'
 import styles from './WaitingScreen.module.css'
 

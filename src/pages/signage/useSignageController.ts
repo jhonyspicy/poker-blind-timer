@@ -19,6 +19,7 @@ import {
   startTimer,
 } from '../../domain/timer'
 import { applyStructureUpdate, effectiveConfig } from '../../domain/structureUpdate'
+import { resolveThemeId, type ThemeId } from '../../domain/theme'
 import type { SessionState, TournamentConfig } from '../../domain/types'
 import {
   ablyChannelName,
@@ -37,6 +38,8 @@ export type SignagePhase = 'waiting' | 'timer' | 'break' | 'champion'
 export interface SignageData {
   session: SessionState
   config: TournamentConfig
+  /** 設定から解決済みのテーマ id(未指定・不明は標準テーマ) */
+  theme: ThemeId
   roomName: string
   now: number
   phase: SignagePhase
@@ -97,7 +100,6 @@ export function useSignageController(): SignageControllerState {
 
   // ---- 初期読み込み ----
   useEffect(() => {
-    preloadSignageAssets()
     let cancelled = false
     void (async () => {
       const storedSession = await loadSession()
@@ -114,6 +116,8 @@ export function useSignageController(): SignageControllerState {
         setLoaded('no-session')
         return
       }
+      // 素材はテーマ別ディレクトリにあるため、設定を読んでテーマが決まってから先読みする
+      preloadSignageAssets(resolveThemeId(storedConfig.theme))
       sessionRef.current = storedSession
       configRef.current = storedConfig
       setSession(storedSession)
@@ -187,6 +191,7 @@ export function useSignageController(): SignageControllerState {
       // タイマー進行・表示と同じく、コマンドの適用もセッション限定の上書きを
       // 反映した実効ストラクチャーに対して行う
       const cfg = effectiveConfig(current, baseCfg)
+      const theme = resolveThemeId(baseCfg.theme)
       // 優勝確定後はトーナメント終了。取り消しも含めリモコンからの入力をすべて拒否する
       if (current.playedEffects?.includes('champion')) return
       if (processedRequestIds.current.has(command.requestId)) return
@@ -206,7 +211,7 @@ export function useSignageController(): SignageControllerState {
           const timer = pauseTimer(current.timer, cfg.structure, nowMs)
           if (timer !== current.timer) {
             next = { ...current, timer }
-            playSound('pause')
+            playSound(theme, 'pause')
           }
           break
         }
@@ -214,7 +219,7 @@ export function useSignageController(): SignageControllerState {
           const timer = resumeTimer(current.timer, nowMs)
           if (timer !== current.timer) {
             next = { ...current, timer }
-            playSound('resume')
+            playSound(theme, 'resume')
           }
           break
         }
@@ -357,6 +362,7 @@ export function useSignageController(): SignageControllerState {
       const baseCfg = configRef.current
       if (!current || !baseCfg) return
       const cfg = effectiveConfig(current, baseCfg)
+      const theme = resolveThemeId(baseCfg.theme)
       const resolved = resolveTimer(current.timer, cfg.structure, nowMs)
       const index =
         resolved.status === 'running' || resolved.status === 'paused' ? resolved.levelIndex : null
@@ -371,8 +377,8 @@ export function useSignageController(): SignageControllerState {
         index > prevLevelIndexRef.current
       ) {
         const item = cfg.structure[index]
-        if (item?.kind === 'blind') playSound('level-up')
-        else if (item?.kind === 'break') playSound('break-start')
+        if (item?.kind === 'blind') playSound(theme, 'level-up')
+        else if (item?.kind === 'break') playSound(theme, 'break-start')
       }
       prevLevelIndexRef.current = index
       // レベルアップ 10 秒前の予告音(次の項目がブラインドのときだけ)
@@ -393,7 +399,7 @@ export function useSignageController(): SignageControllerState {
           warnedLevelRef.current !== resolved.levelIndex
         ) {
           warnedLevelRef.current = resolved.levelIndex
-          playSound('level-up-warning')
+          playSound(theme, 'level-up-warning')
         }
       }
       // レイトレジ締切に到達した瞬間にも演出判定を行う(締切時点の人数で
@@ -491,6 +497,7 @@ export function useSignageController(): SignageControllerState {
   return {
     session,
     config: displayConfig,
+    theme: resolveThemeId(config.theme),
     roomName,
     now,
     phase,

@@ -1,18 +1,16 @@
 import { Link } from 'react-router'
-import BreakScreen from './BreakScreen'
-import ChampionScreen from './ChampionScreen'
-import TimerScreen from './TimerScreen'
+import { deriveStats } from '../../domain/stats'
+import { resolveTheme } from './themes'
 import { useSignageController, type SignageData } from './useSignageController'
 import VideoOverlay from './VideoOverlay'
-import WaitingScreen from './WaitingScreen'
-import { deriveStats } from '../../domain/stats'
 
 function SignageBody({ data }: { data: SignageData }) {
   const { config, session, roomName, now, phase } = data
+  const theme = resolveTheme(data.theme)
   switch (phase) {
     case 'waiting':
       return (
-        <WaitingScreen
+        <theme.WaitingScreen
           storeName={roomName}
           config={config}
           stats={deriveStats(session.histories)}
@@ -20,7 +18,7 @@ function SignageBody({ data }: { data: SignageData }) {
       )
     case 'break':
       return (
-        <BreakScreen
+        <theme.BreakScreen
           config={config}
           session={session}
           stats={deriveStats(session.histories)}
@@ -28,10 +26,10 @@ function SignageBody({ data }: { data: SignageData }) {
         />
       )
     case 'champion':
-      return <ChampionScreen storeName={roomName} config={config} />
+      return <theme.ChampionScreen storeName={roomName} config={config} />
     default:
       return (
-        <TimerScreen
+        <theme.TimerScreen
           config={config}
           timer={session.timer}
           stats={deriveStats(session.histories)}
@@ -43,7 +41,8 @@ function SignageBody({ data }: { data: SignageData }) {
 
 /**
  * サイネージ画面。保存済みセッションから待機 / タイマー / ブレイク / 優勝を表示し、
- * リモコンのコマンドと演出動画オーバーレイを制御する
+ * リモコンのコマンドと演出動画オーバーレイを制御する。
+ * 画面コンポーネント一式と素材は設定のテーマに応じて切り替わる
  */
 export default function SignagePage() {
   const state = useSignageController()
@@ -68,6 +67,7 @@ export default function SignagePage() {
       {state.overlayEvent && (
         <VideoOverlay
           key={state.overlayEvent}
+          theme={state.theme}
           event={state.overlayEvent}
           onDone={state.onOverlayDone}
           onStarted={state.onOverlayStarted}

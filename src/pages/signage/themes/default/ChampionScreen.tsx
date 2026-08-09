@@ -1,10 +1,11 @@
-import type { TournamentConfig } from '../../domain/types'
+import { resolveThemeId } from '../../../../domain/theme'
+import type { TournamentConfig } from '../../../../domain/types'
+import { assetUrl, themeAssetPath } from '../../preload'
 import styles from './ChampionScreen.module.css'
-import { assetUrl } from './preload'
 
 /**
  * 優勝画面(デザインモック Champion Signage の移植)。
- * 背景画像は `public/images/champion.png` を置くと表示される(無ければ黒背景)。
+ * 背景画像は `public/themes/<テーマ名>/images/champion.png` を置くと表示される(無ければ黒背景)。
  * 店名・トーナメント名は縁取り+金グラデの 2 層で重ねる
  */
 export default function ChampionScreen({
@@ -14,7 +15,7 @@ export default function ChampionScreen({
   storeName: string
   config: TournamentConfig
 }) {
-  const imageUrl = assetUrl(`${import.meta.env.BASE_URL}images/champion.png`)
+  const imageUrl = assetUrl(themeAssetPath(resolveThemeId(config.theme), 'images/champion.png'))
   const backgroundImage = imageUrl === null ? undefined : `url(${imageUrl})`
   return (
     <div className={styles.page}>
