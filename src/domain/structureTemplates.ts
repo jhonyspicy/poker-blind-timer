@@ -27,6 +27,7 @@ export interface StructureTemplate {
  */
 const SB_MULTIPLIERS = [
   1, 2, 3, 4, 6, 8, 10, 15, 20, 30, 40, 60, 80, 100, 150, 200, 300, 400, 600, 800,
+  1000, 1500, 2000, 3000, 4000,
 ]
 
 export const STRUCTURE_TEMPLATES: StructureTemplate[] = [
