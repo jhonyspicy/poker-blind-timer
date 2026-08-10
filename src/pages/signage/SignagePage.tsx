@@ -1,9 +1,9 @@
 import { Link } from 'react-router'
 import { deriveStats } from '../../domain/stats'
+import { useWakeLock } from '../../hooks/useWakeLock'
 import AudioUnlockNotice from './AudioUnlockNotice'
 import { resolveTheme } from './themes'
 import { useSignageController, type SignageData } from './useSignageController'
-import { useWakeLock } from './useWakeLock'
 import VideoOverlay from './VideoOverlay'
 
 function SignageBody({ data }: { data: SignageData }) {
