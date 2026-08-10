@@ -16,7 +16,7 @@ import {
 /** START 送信後にサイネージから応答が無い場合、開始スライダーを元に戻すまでの時間 */
 const START_TIMEOUT_MS = 15_000
 /** 履歴から拾うクイックチップの最大数 */
-const QUICK_CHIP_MAX = 5
+const QUICK_CHIP_MAX = 10
 /** 開始スライダーのノブ幅+左右余白(px)。ドラッグ可動域の計算に使う */
 const SLIDE_KNOB_SPAN = 76
 

@@ -2,6 +2,7 @@ import * as Ably from 'ably'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { formatBlind, formatClock } from '../../domain/format'
+import { useWakeLock } from '../../hooks/useWakeLock'
 import {
   ablyChannelName,
   createRealtimeClient,
@@ -44,6 +45,9 @@ export default function RemotePage() {
   const [tab, setTab] = useState<Tab>('control')
   const [now, setNow] = useState(() => Date.now())
   const channelRef = useRef<Ably.RealtimeChannel | null>(null)
+
+  // 運営中は手元で操作し続けるため、トーナメント終了までは画面スリープを抑止する
+  useWakeLock(snapshot?.status !== 'finished')
 
   // 残り時間スライダー。ドラッグ中はスナップショットより手元の値を優先する。
   // コンパクトバーの表示にも使うため、ControlTab ではなくここで保持する
