@@ -283,6 +283,176 @@
   margin: 0;
 }
 
+/*
+ * — コマンド送信中 —
+ * ブロック用の透明レイヤーは送信開始と同時に敷いて連打を防ぐ。
+ * 目に見える表示は猶予を過ぎてからで、通常の速い応答では出さない
+ */
+.sendingBlocker {
+  position: absolute;
+  inset: 0;
+  /* 切断モーダル(10)より下。切断中は理由が分かる切断モーダルを前面に出す */
+  z-index: 8;
+}
+
+.sendingOverlay {
+  composes: sendingBlocker;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(11, 14, 20, 0.6);
+}
+
+.sendingCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 22px 30px;
+  background: #151a25;
+  border: 1px solid #2a3346;
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.sendingSpinner {
+  composes: spinner;
+  width: 34px;
+  height: 34px;
+  border-width: 2.5px;
+}
+
+.sendingTitle {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #a9b0c0;
+}
+
+/* — 送信完了(自動的に消える。操作はブロックしない) — */
+.sentToast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(84px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: rgba(21, 26, 37, 0.96);
+  border: 1px solid #2f4a3b;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  font-size: 13px;
+  font-weight: 600;
+  color: #e9e9ed;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: sent-toast-in 160ms ease-out;
+}
+
+.sentIcon {
+  width: 18px;
+  height: 18px;
+  color: #3ddc84;
+}
+
+@keyframes sent-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/*
+ * — 送信失敗の警告 —
+ * ボタンを押した直後にディーラー業務へ移る運営でも失敗に気づけるよう、
+ * 自動では消さず、切断モーダルより前面に出す
+ */
+.sendFailOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(11, 14, 20, 0.82);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.sendFailCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 340px;
+  padding: 26px 24px 22px;
+  background: #151a25;
+  border: 1px solid #5b3340;
+  border-radius: 14px;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+.sendFailIcon {
+  width: 40px;
+  height: 40px;
+  color: #ff6b81;
+}
+
+.sendFailTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #e9e9ed;
+}
+
+.sendFailNote {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #8b93a7;
+  margin: 0;
+}
+
+.sendFailActions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.sendFailBtnBase {
+  flex: 1;
+  /* 慌てている場面で押しやすいよう、十分な高さを確保する */
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sendRetryBtn {
+  composes: sendFailBtnBase;
+  background: #9184d9;
+  border: 1px solid #9184d9;
+  color: #0b0e14;
+}
+
+.sendCloseBtn {
+  composes: sendFailBtnBase;
+  background: none;
+  border: 1px solid #2a3346;
+  color: #a9b0c0;
+}
+
 /* — タブバー — */
 .tabbar {
   flex: none;

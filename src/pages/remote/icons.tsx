@@ -65,6 +65,13 @@ export const IconCheckSquare = ({ className }: IconProps) => (
     <path d="M8 12.5l3 3 5.5-6.5" />
   </svg>
 )
+export const IconWarning = ({ className }: IconProps) => (
+  <svg viewBox="0 0 24 24" className={className} {...strokeProps}>
+    <path d="M10.3 3.9L2.5 17.4A2 2 0 004.2 20.4h15.6a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" />
+    <path d="M12 9v4.5" />
+    <path d="M12 17h.01" />
+  </svg>
+)
 export const IconFlag = ({ className }: IconProps) => (
   <svg viewBox="0 0 24 24" className={className} {...strokeProps}>
     <path d="M5 21V4" />

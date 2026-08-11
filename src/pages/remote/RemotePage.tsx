@@ -8,10 +8,15 @@ import {
   createRealtimeClient,
   isPairingConfigured,
 } from '../../realtime/connection'
-import { MESSAGE_NAME, type RemoteCommandInput, type StateSnapshot } from '../../realtime/messages'
+import {
+  MESSAGE_NAME,
+  type CommandAck,
+  type RemoteCommandInput,
+  type StateSnapshot,
+} from '../../realtime/messages'
 import ControlTab from './ControlTab'
 import HistoryTab from './HistoryTab'
-import { IconCheckSquare, IconFlag, IconHistory, IconRows, IconSliders } from './icons'
+import { IconCheckSquare, IconFlag, IconHistory, IconRows, IconSliders, IconWarning } from './icons'
 import styles from './RemotePage.module.css'
 import StructureTab from './StructureTab'
 
@@ -29,6 +34,27 @@ const DISCONNECT_MODAL_DELAY_MS = 1_500
  * 画面サイズでバーが出ないため、残り時間が見えなくなる程度で切り替える
  */
 const STATE_CARD_VISIBLE_RATIO = 0.35
+/**
+ * 送信開始から「送信中」表示を出すまでの猶予。通常のラウンドトリップは
+ * これより短く終わるため、操作のたびにモーダルが点滅するのを防ぐ。
+ * 入力のブロック自体は送信開始と同時に始める(連打防止)
+ */
+const SENDING_VISIBLE_DELAY_MS = 300
+/** ack を待つ上限。超えたら送信失敗として警告する */
+const COMMAND_TIMEOUT_MS = 5_000
+/** 送信完了表示が自動的に消えるまでの時間 */
+const SENT_FEEDBACK_MS = 1_200
+
+/**
+ * 操作コマンドの送信状態。sending の間は操作を受け付けず、failed は
+ * 利用者が閉じるまで残す(押した直後に別作業へ移っても失敗に気づけるようにするため)
+ */
+type SendState =
+  | { phase: 'idle' }
+  | { phase: 'sending'; visible: boolean }
+  | { phase: 'sent' }
+  /** unreachable: サイネージまで届かなかった / rejected: 届いたが受け付けられなかった */
+  | { phase: 'failed'; reason: 'unreachable' | 'rejected' }
 
 /**
  * リモコン画面。`?ch=` のチャンネルでサイネージと接続し、接続状態の管理と
@@ -82,10 +108,90 @@ export default function RemotePage() {
   // 復帰していなければ表示する。再接続が完了すると自動的に閉じる
   const [disconnectedAt, setDisconnectedAt] = useState<number | null>(null)
 
+  // 送信中は操作をブロックし、ack の受信で完了・未受信で失敗を知らせる。
+  // 送信済みコマンドは ref に保持し、再送で同じ requestId を使い回す
+  // (ack だけが失われた場合にサイネージ側の重複排除が働き、二重適用を防ぐ)
+  const [send, setSend] = useState<SendState>({ phase: 'idle' })
+  const sentCommandRef = useRef<{ requestId: string; input: RemoteCommandInput } | null>(null)
+  const sendTimersRef = useRef<number[]>([])
+  const clearSendTimers = useCallback(() => {
+    sendTimersRef.current.forEach((id) => window.clearTimeout(id))
+    sendTimersRef.current = []
+  }, [])
+  useEffect(() => () => clearSendTimers(), [clearSendTimers])
+
+  /**
+   * 応答待ちを「届かなかった」として打ち切る。送信済みコマンドは再送のために
+   * 保持したままにし、遅れて ack が届いた場合は完了へ差し替えられるようにする
+   */
+  const failSend = useCallback(
+    (requestId: string) => {
+      if (sentCommandRef.current?.requestId !== requestId) return
+      clearSendTimers()
+      setSend({ phase: 'failed', reason: 'unreachable' })
+    },
+    [clearSendTimers],
+  )
+
+  const publishCommand = useCallback(
+    (requestId: string, input: RemoteCommandInput) => {
+      clearSendTimers()
+      sentCommandRef.current = { requestId, input }
+      setSend({ phase: 'sending', visible: false })
+      sendTimersRef.current.push(
+        window.setTimeout(
+          () => setSend((s) => (s.phase === 'sending' ? { phase: 'sending', visible: true } : s)),
+          SENDING_VISIBLE_DELAY_MS,
+        ),
+      )
+      sendTimersRef.current.push(window.setTimeout(() => failSend(requestId), COMMAND_TIMEOUT_MS))
+      const channel = channelRef.current
+      if (!channel) {
+        failSend(requestId)
+        return
+      }
+      channel.publish(MESSAGE_NAME.command, { ...input, requestId }).catch(() => {
+        failSend(requestId)
+      })
+    },
+    [clearSendTimers, failSend],
+  )
+
   const sendCommand = (input: RemoteCommandInput) => {
-    const requestId = crypto.randomUUID()
-    void channelRef.current?.publish(MESSAGE_NAME.command, { ...input, requestId })
+    // オーバーレイでも入力を止めているが、応答待ち・失敗表示中の送信は二重に防ぐ
+    if (sentCommandRef.current) return
+    publishCommand(crypto.randomUUID(), input)
   }
+
+  const resendCommand = () => {
+    const last = sentCommandRef.current
+    if (!last) return
+    publishCommand(last.requestId, last.input)
+  }
+
+  const dismissSendFailure = () => {
+    clearSendTimers()
+    sentCommandRef.current = null
+    setSend({ phase: 'idle' })
+  }
+
+  /** ack の受信。タイムアウト後に遅れて届いた場合も失敗表示を完了へ差し替える */
+  const handleAck = useCallback(
+    (ack: CommandAck) => {
+      if (sentCommandRef.current?.requestId !== ack.requestId) return
+      clearSendTimers()
+      sentCommandRef.current = null
+      if (ack.status === 'rejected') {
+        setSend({ phase: 'failed', reason: 'rejected' })
+        return
+      }
+      setSend({ phase: 'sent' })
+      sendTimersRef.current.push(
+        window.setTimeout(() => setSend({ phase: 'idle' }), SENT_FEEDBACK_MS),
+      )
+    },
+    [clearSendTimers],
+  )
 
   useEffect(() => {
     if (!channelId || !isPairingConfigured()) return
@@ -114,6 +220,9 @@ export default function RemotePage() {
     client.connection.on('suspended', onDisconnected)
     // トークン取得不能など回復見込みの無い失敗。再読み込みを案内する
     client.connection.on('failed', () => setConnState('failed'))
+    void channel.subscribe(MESSAGE_NAME.ack, (message) => {
+      handleAck(message.data as CommandAck)
+    })
     void channel.subscribe(MESSAGE_NAME.state, (message) => {
       const data = message.data as StateSnapshot
       hasSnapshotRef.current = true
@@ -124,7 +233,13 @@ export default function RemotePage() {
       }
       // トーナメント終了後は操作できないため、接続を閉じて余計な
       // メッセージのやり取りをしない(終了画面は最後のスナップショットで表示し続ける)
-      if (data.status === 'finished') client.close()
+      if (data.status === 'finished') {
+        // 接続を閉じると ack は届かない。終了は送信失敗ではないため警告を出さない
+        clearSendTimers()
+        sentCommandRef.current = null
+        setSend({ phase: 'idle' })
+        client.close()
+      }
     })
     // サイネージ側の接続検知(presence)のため入室を宣言する
     void channel.presence.enter({ role: 'remote' }).catch(() => {
@@ -144,7 +259,7 @@ export default function RemotePage() {
       channelRef.current = null
       client.close()
     }
-  }, [channelId])
+  }, [channelId, handleAck, clearSendTimers])
 
   // 残り時間の表示をローカルで進める(スナップショット受信間の補間)
   useEffect(() => {
@@ -309,6 +424,67 @@ export default function RemotePage() {
             ) : (
               <span className={styles.miniBlinds}></span>
             )}
+          </div>
+        )}
+
+        {/*
+          送信中の操作ブロック。オーバーレイ自体は送信開始と同時に出して連打を防ぎ、
+          目に見える「送信中」表示は猶予を過ぎたときだけ出す(通常の速い応答では出ない)
+        */}
+        {send.phase === 'sending' &&
+          (send.visible ? (
+            <div className={styles.sendingOverlay} role="alert">
+              <div className={styles.sendingCard}>
+                <div className={styles.sendingSpinner}></div>
+                <div className={styles.sendingTitle}>送信中…</div>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.sendingBlocker}></div>
+          ))}
+
+        {/* 送信完了の控えめな表示(操作はブロックしない) */}
+        {send.phase === 'sent' && (
+          <div className={styles.sentToast} role="status">
+            <IconCheckSquare className={styles.sentIcon} />
+            送信しました
+          </div>
+        )}
+
+        {/* 送信失敗の警告。持ち場を離れても気づけるよう、閉じるまで残す */}
+        {send.phase === 'failed' && (
+          <div className={styles.sendFailOverlay} role="alertdialog" aria-modal="true">
+            <div className={styles.sendFailCard}>
+              <IconWarning className={styles.sendFailIcon} />
+              <div className={styles.sendFailTitle}>
+                {send.reason === 'rejected' ? '操作を受け付けられません' : '送信できませんでした'}
+              </div>
+              <p className={styles.sendFailNote}>
+                {send.reason === 'rejected' ? (
+                  <>
+                    トーナメントが終了しているなどの理由で、
+                    <br />
+                    タイマー側が操作を受け付けませんでした。
+                  </>
+                ) : (
+                  <>
+                    タイマー側に届いたか確認できませんでした。
+                    <br />
+                    タイマーの画面を確認し、反映されていなければ再送してください。
+                  </>
+                )}
+              </p>
+              <div className={styles.sendFailActions}>
+                {send.reason !== 'rejected' && (
+                  <button type="button" className={styles.sendRetryBtn} onClick={resendCommand}>
+                    再送する
+                  </button>
+                )}
+                <button type="button" className={styles.sendCloseBtn} onClick={dismissSendFailure}>
+                  閉じる
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
