@@ -45,8 +45,21 @@ export interface StateSnapshot {
   currentIndex: number | null
 }
 
+/**
+ * サイネージ → リモコンのコマンド確認応答。リモコンは送信したコマンドの
+ * requestId と一致する ack を受け取るまで応答待ちとし、届かなければ
+ * 送信失敗として警告する(Ably への publish 成功では、サイネージが
+ * 停止していても成功に見えてしまうため)
+ */
+export interface CommandAck {
+  requestId: string
+  /** accepted: 受理(重複排除でスキップした再送も含む) / rejected: 受け付けない状態だった */
+  status: 'accepted' | 'rejected'
+}
+
 /** Ably チャンネル上のメッセージ name */
 export const MESSAGE_NAME = {
   command: 'command',
   state: 'state',
+  ack: 'ack',
 } as const

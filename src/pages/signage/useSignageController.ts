@@ -26,7 +26,7 @@ import {
   createRealtimeClient,
   isPairingConfigured,
 } from '../../realtime/connection'
-import { MESSAGE_NAME, type RemoteCommand } from '../../realtime/messages'
+import { MESSAGE_NAME, type CommandAck, type RemoteCommand } from '../../realtime/messages'
 import { buildSnapshot } from '../../realtime/snapshot'
 import { getConfig, loadRoom, loadSession, saveSession } from '../../storage/db'
 import { preloadSignageAssets } from './preload'
@@ -183,18 +183,40 @@ export function useSignageController(): SignageControllerState {
   )
 
   // ---- リモコンコマンドの適用 ----
+  /**
+   * コマンドを処理したことをリモコンへ返す。リモコンはこれを受け取るまで
+   * 応答待ちのままなので、適用したかどうかに関わらず必ず返す
+   */
+  const sendAck = useCallback((requestId: string, status: CommandAck['status']) => {
+    try {
+      void channelRef.current?.publish(MESSAGE_NAME.ack, { requestId, status } satisfies CommandAck)
+    } catch {
+      /* 未接続時は何もしない */
+    }
+  }, [])
+
   const applyCommand = useCallback(
     (command: RemoteCommand) => {
       const current = sessionRef.current
       const baseCfg = configRef.current
+      // セッション未読み込み中は状態が確定していないため ack を返さない
+      // (リモコンはタイムアウト後に再送でき、そのときには読み込みが完了している)
       if (!current || !baseCfg) return
       // タイマー進行・表示と同じく、コマンドの適用もセッション限定の上書きを
       // 反映した実効ストラクチャーに対して行う
       const cfg = effectiveConfig(current, baseCfg)
       const theme = resolveThemeId(baseCfg.theme)
       // 優勝確定後はトーナメント終了。取り消しも含めリモコンからの入力をすべて拒否する
-      if (current.playedEffects?.includes('champion')) return
-      if (processedRequestIds.current.has(command.requestId)) return
+      if (current.playedEffects?.includes('champion')) {
+        sendAck(command.requestId, 'rejected')
+        return
+      }
+      // ack が失われた場合の再送は同じ requestId で届く。適用はしないが、
+      // リモコンに応答を返さないとタイムアウトで失敗と誤判定される
+      if (processedRequestIds.current.has(command.requestId)) {
+        sendAck(command.requestId, 'accepted')
+        return
+      }
       processedRequestIds.current.add(command.requestId)
       const nowMs = Date.now()
       let next: SessionState | null = null
@@ -280,8 +302,9 @@ export function useSignageController(): SignageControllerState {
       // ストラクチャー上書きの採用で締切条件が変わり得るため、演出判定は
       // 適用後のセッションから導いた実効 config で行う
       if (next) commitSession(applyMilestones(next, effectiveConfig(next, baseCfg), nowMs))
+      sendAck(command.requestId, 'accepted')
     },
-    [applyMilestones, commitSession],
+    [applyMilestones, commitSession, sendAck],
   )
   const applyCommandRef = useRef(applyCommand)
   useEffect(() => {
