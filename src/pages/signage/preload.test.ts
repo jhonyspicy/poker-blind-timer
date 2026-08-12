@@ -17,7 +17,8 @@ describe('preloadSignageAssets', () => {
   }
 
   const waitForExpectation = async (assertion: () => void) => {
-    for (let i = 0; i < 20; i++) {
+    const deadline = Date.now() + 1_000
+    while (Date.now() < deadline) {
       try {
         assertion()
         return

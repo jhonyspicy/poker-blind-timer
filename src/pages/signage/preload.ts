@@ -35,6 +35,7 @@ export interface StartAssetPreloadStatus {
 
 interface ThemeStartAssetState {
   requiredUrls: Set<string>
+  resolvedUrls: Set<string>
   total: number
   resolved: number
   ready: boolean
@@ -65,6 +66,7 @@ function ensureStartAssetState(theme: ThemeId): ThemeStartAssetState {
   const requiredUrls = new Set(startAssetPaths(theme))
   const created: ThemeStartAssetState = {
     requiredUrls,
+    resolvedUrls: new Set(),
     total: requiredUrls.size,
     resolved: 0,
     ready: false,
@@ -85,12 +87,13 @@ function notifyStartAssetStatus(state: ThemeStartAssetState): void {
 
 function markStartAssetResolved(theme: ThemeId, url: string, result: PreloadResult): void {
   const state = ensureStartAssetState(theme)
-  if (!state.requiredUrls.has(url) || state.ready) return
-  if (result !== 'loaded') {
+  if (!state.requiredUrls.has(url) || state.resolvedUrls.has(url) || state.ready) return
+  if (result === 'failed') {
     // 開始演出だけは途中再生によるカクつきを避けるため、取得失敗時も
     // 「再生しない」扱いに確定させ、元 URL へのストリーミング再生へ戻さない
     cache.set(url, null)
   }
+  state.resolvedUrls.add(url)
   state.resolved += 1
   state.ready = state.resolved >= state.total
   notifyStartAssetStatus(state)
@@ -174,7 +177,8 @@ async function preloadOne(store: Cache | null, url: string): Promise<PreloadResu
     await registerBlob(url, res)
     return 'loaded'
   } catch {
-    /* ネットワークエラー時は未取得のまま(再生時に元 URL へフォールバック) */
+    /* ネットワークエラー時は未取得のまま返す。開始演出だけは呼び出し側で
+       null に確定させ、ストリーミング再生へ戻さずスキップできるようにする */
     return 'failed'
   }
 }
