@@ -29,7 +29,14 @@ import {
 import { MESSAGE_NAME, type CommandAck, type RemoteCommand } from '../../realtime/messages'
 import { buildSnapshot } from '../../realtime/snapshot'
 import { getConfig, loadRoom, loadSession, saveSession } from '../../storage/db'
-import { preloadSignageAssets } from './preload'
+import {
+  assetUrl,
+  getStartAssetPreloadStatus,
+  preloadSignageAssets,
+  subscribeStartAssetPreloadStatus,
+  themeAssetPath,
+  type StartAssetPreloadStatus,
+} from './preload'
 import { playSound } from './sounds'
 import type { VideoEvent } from './VideoOverlay'
 
@@ -43,6 +50,7 @@ export interface SignageData {
   roomName: string
   now: number
   phase: SignagePhase
+  startAssetPreload: StartAssetPreloadStatus
   /** 再生中の演出動画イベント。null なら非表示 */
   overlayEvent: VideoEvent | null
   onOverlayDone: (event: VideoEvent) => void
@@ -72,6 +80,11 @@ export function useSignageController(): SignageControllerState {
   const [roomName, setRoomName] = useState('')
   const [now, setNow] = useState(() => Date.now())
   const [overlayQueue, setOverlayQueue] = useState<VideoEvent[]>([])
+  const [startAssetPreload, setStartAssetPreload] = useState<StartAssetPreloadStatus>({
+    total: 0,
+    resolved: 0,
+    ready: false,
+  })
 
   // セッションの正本。コマンドが連続受信されても更新が失われないよう、
   // コールバックからは常にこの ref を読み、commitSession で同期的に書き換える
@@ -82,6 +95,12 @@ export function useSignageController(): SignageControllerState {
     sessionRef.current = next
     setSession(next)
   }, [])
+
+  useEffect(() => {
+    if (!config) return
+    const theme = resolveThemeId(config.theme)
+    return subscribeStartAssetPreloadStatus(theme, setStartAssetPreload)
+  }, [config])
   const channelRef = useRef<Ably.RealtimeChannel | null>(null)
   const clientRef = useRef<Ably.Realtime | null>(null)
   const processedRequestIds = useRef(new Set<string>())
@@ -92,6 +111,8 @@ export function useSignageController(): SignageControllerState {
   const lateRegWasOpenRef = useRef<boolean | null>(null)
   /** START 受信済みで開始演出~タイマー起動待ちの間 true(START の二重処理防止) */
   const startPendingRef = useRef(false)
+  /** START 受信後、開始演出のキュー投入または即時開始を 1 回だけ行うためのフラグ */
+  const startQueuedRef = useRef(false)
   const startTimeouts = useRef<number[]>([])
   /** 開始演出の途中(再生開始+7 秒)からタイマー画面を先に見せるためのフラグ */
   const [earlyTimerScreen, setEarlyTimerScreen] = useState(false)
@@ -117,7 +138,9 @@ export function useSignageController(): SignageControllerState {
         return
       }
       // 素材はテーマ別ディレクトリにあるため、設定を読んでテーマが決まってから先読みする
-      preloadSignageAssets(resolveThemeId(storedConfig.theme))
+      const theme = resolveThemeId(storedConfig.theme)
+      preloadSignageAssets(theme)
+      setStartAssetPreload(getStartAssetPreloadStatus(theme))
       sessionRef.current = storedSession
       configRef.current = storedConfig
       setSession(storedSession)
@@ -195,6 +218,42 @@ export function useSignageController(): SignageControllerState {
     }
   }, [])
 
+  // ---- トーナメント開始(開始演出との同期) ----
+  const startTournamentIfWaiting = useCallback(() => {
+    const current = sessionRef.current
+    const cfg = configRef.current
+    startPendingRef.current = false
+    startQueuedRef.current = false
+    if (!current || !cfg || current.timer.status !== 'waiting') return
+    const nowMs = Date.now()
+    commitSession(
+      applyMilestones(
+        { ...current, timer: startTimer(nowMs) },
+        effectiveConfig(current, cfg),
+        nowMs,
+      ),
+    )
+  }, [applyMilestones, commitSession])
+
+  const queueTournamentStartIfReady = useCallback(
+    (theme: ThemeId) => {
+      const current = sessionRef.current
+      if (!startPendingRef.current || startQueuedRef.current || current?.timer.status !== 'waiting') return
+      startQueuedRef.current = true
+      if (assetUrl(themeAssetPath(theme, 'videos/tournament-start.webm')) === null) {
+        startTournamentIfWaiting()
+        return
+      }
+      setOverlayQueue((queue) => [...queue, 'tournament-start'])
+    },
+    [startTournamentIfWaiting],
+  )
+
+  useEffect(() => {
+    if (loaded !== 'ok' || !config || !startAssetPreload.ready || !startPendingRef.current) return
+    queueTournamentStartIfReady(resolveThemeId(config.theme))
+  }, [loaded, config, startAssetPreload.ready, queueTournamentStartIfReady])
+
   const applyCommand = useCallback(
     (command: RemoteCommand) => {
       const current = sessionRef.current
@@ -226,7 +285,8 @@ export function useSignageController(): SignageControllerState {
           // (素材が無い場合は演出スキップ時に即起動する)
           if (current.timer.status === 'waiting' && !startPendingRef.current) {
             startPendingRef.current = true
-            setOverlayQueue((queue) => [...queue, 'tournament-start'])
+            startQueuedRef.current = false
+            if (startAssetPreload.ready) queueTournamentStartIfReady(theme)
           }
           break
         case 'PAUSE': {
@@ -304,7 +364,7 @@ export function useSignageController(): SignageControllerState {
       if (next) commitSession(applyMilestones(next, effectiveConfig(next, baseCfg), nowMs))
       sendAck(command.requestId, 'accepted')
     },
-    [applyMilestones, commitSession, sendAck],
+    [applyMilestones, commitSession, queueTournamentStartIfReady, sendAck, startAssetPreload.ready],
   )
   const applyCommandRef = useRef(applyCommand)
   useEffect(() => {
@@ -440,22 +500,6 @@ export function useSignageController(): SignageControllerState {
     return () => window.clearInterval(id)
   }, [loaded, commitSession, applyMilestones])
 
-  // ---- トーナメント開始(開始演出との同期) ----
-  const startTournamentIfWaiting = useCallback(() => {
-    const current = sessionRef.current
-    const cfg = configRef.current
-    startPendingRef.current = false
-    if (!current || !cfg || current.timer.status !== 'waiting') return
-    const nowMs = Date.now()
-    commitSession(
-      applyMilestones(
-        { ...current, timer: startTimer(nowMs) },
-        effectiveConfig(current, cfg),
-        nowMs,
-      ),
-    )
-  }, [applyMilestones, commitSession])
-
   const onOverlayStarted = useCallback(
     (event: VideoEvent) => {
       if (event === 'tournament-start') {
@@ -524,6 +568,7 @@ export function useSignageController(): SignageControllerState {
     roomName,
     now,
     phase,
+    startAssetPreload,
     overlayEvent: overlayQueue[0] ?? null,
     onOverlayDone,
     onOverlayStarted,

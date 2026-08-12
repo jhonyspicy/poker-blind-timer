@@ -65,9 +65,34 @@ export default function SignagePage() {
       </main>
     )
   }
+  const showStartAssetNotice = state.phase === 'waiting' && !state.startAssetPreload.ready
   return (
     <>
       <SignageBody data={state} />
+      {showStartAssetNotice && (
+        <div
+          style={{
+            position: 'fixed',
+            right: 'min(3vw, 24px)',
+            bottom: 'min(3vw, 24px)',
+            zIndex: 10,
+            padding: '12px 16px',
+            borderRadius: '14px',
+            background: 'rgba(8, 6, 4, 0.88)',
+            border: '1px solid rgba(232, 194, 94, 0.45)',
+            color: '#f4e7bb',
+            boxShadow: '0 12px 32px rgba(0, 0, 0, 0.35)',
+            textAlign: 'right',
+          }}
+        >
+          <div style={{ fontSize: 'clamp(14px, 1.3vw, 20px)', fontWeight: 700 }}>
+            開始演出を準備中…
+          </div>
+          <div style={{ marginTop: 4, fontSize: 'clamp(12px, 1vw, 16px)', opacity: 0.88 }}>
+            {state.startAssetPreload.resolved} / {state.startAssetPreload.total} 読み込み済み
+          </div>
+        </div>
+      )}
       {state.overlayEvent && (
         <VideoOverlay
           key={state.overlayEvent}

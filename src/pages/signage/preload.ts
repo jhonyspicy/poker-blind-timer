@@ -27,6 +27,22 @@ export function themeAssetPath(theme: ThemeId, relativePath: string): string {
 const cache = new Map<string, string | null>()
 const startedThemes = new Set<ThemeId>()
 
+export interface StartAssetPreloadStatus {
+  total: number
+  resolved: number
+  ready: boolean
+}
+
+interface ThemeStartAssetState {
+  requiredUrls: Set<string>
+  total: number
+  resolved: number
+  ready: boolean
+  listeners: Set<(status: StartAssetPreloadStatus) => void>
+}
+
+const startAssetStates = new Map<ThemeId, ThemeStartAssetState>()
+
 function assetPaths(theme: ThemeId): string[] {
   return [
     ...VIDEO_EVENTS.flatMap((event) => [
@@ -36,6 +52,64 @@ function assetPaths(theme: ThemeId): string[] {
     ...SOUND_EVENTS.map((event) => themeAssetPath(theme, `sounds/${event}.ogg`)),
     ...IMAGE_PATHS.map((path) => themeAssetPath(theme, path)),
   ]
+}
+
+function startAssetPaths(theme: ThemeId): string[] {
+  const base = themeAssetPath(theme, 'videos/tournament-start')
+  return [`${base}.webm`, `${base}.ogg`]
+}
+
+function ensureStartAssetState(theme: ThemeId): ThemeStartAssetState {
+  const current = startAssetStates.get(theme)
+  if (current) return current
+  const requiredUrls = new Set(startAssetPaths(theme))
+  const created: ThemeStartAssetState = {
+    requiredUrls,
+    total: requiredUrls.size,
+    resolved: 0,
+    ready: false,
+    listeners: new Set(),
+  }
+  startAssetStates.set(theme, created)
+  return created
+}
+
+function snapshotStartAssetStatus(state: ThemeStartAssetState): StartAssetPreloadStatus {
+  return { total: state.total, resolved: state.resolved, ready: state.ready }
+}
+
+function notifyStartAssetStatus(state: ThemeStartAssetState): void {
+  const status = snapshotStartAssetStatus(state)
+  state.listeners.forEach((listener) => listener(status))
+}
+
+function markStartAssetResolved(theme: ThemeId, url: string, result: PreloadResult): void {
+  const state = ensureStartAssetState(theme)
+  if (!state.requiredUrls.has(url) || state.ready) return
+  if (result !== 'loaded') {
+    // 開始演出だけは途中再生によるカクつきを避けるため、取得失敗時も
+    // 「再生しない」扱いに確定させ、元 URL へのストリーミング再生へ戻さない
+    cache.set(url, null)
+  }
+  state.resolved += 1
+  state.ready = state.resolved >= state.total
+  notifyStartAssetStatus(state)
+}
+
+export function getStartAssetPreloadStatus(theme: ThemeId): StartAssetPreloadStatus {
+  return snapshotStartAssetStatus(ensureStartAssetState(theme))
+}
+
+export function subscribeStartAssetPreloadStatus(
+  theme: ThemeId,
+  listener: (status: StartAssetPreloadStatus) => void,
+): () => void {
+  const state = ensureStartAssetState(theme)
+  state.listeners.add(listener)
+  listener(snapshotStartAssetStatus(state))
+  return () => {
+    state.listeners.delete(listener)
+  }
 }
 
 /** Cache Storage が使えない環境(非セキュアコンテキスト等)では null を返し、従来のメモリのみ動作にフォールバックする */
@@ -72,20 +146,22 @@ async function revalidate(store: Cache, url: string, cached: Response): Promise<
   }
 }
 
-async function preloadOne(store: Cache | null, url: string): Promise<void> {
+type PreloadResult = 'loaded' | 'missing' | 'failed'
+
+async function preloadOne(store: Cache | null, url: string): Promise<PreloadResult> {
   if (store) {
     const cached = await store.match(url)
     if (cached) {
       await registerBlob(url, cached)
       void revalidate(store, url, cached)
-      return
+      return 'loaded'
     }
   }
   try {
     const res = await fetch(url)
     if (!res.ok) {
       cache.set(url, null)
-      return
+      return 'missing'
     }
     // put は body を消費するため、blob 化の前に複製を渡す
     if (store) {
@@ -96,22 +172,30 @@ async function preloadOne(store: Cache | null, url: string): Promise<void> {
       }
     }
     await registerBlob(url, res)
+    return 'loaded'
   } catch {
     /* ネットワークエラー時は未取得のまま(再生時に元 URL へフォールバック) */
+    return 'failed'
   }
 }
 
 /** テーマの全素材のダウンロードを開始する(同一テーマの多重呼び出しは無視)。完了を待つ必要はない */
 export function preloadSignageAssets(theme: ThemeId): void {
+  ensureStartAssetState(theme)
   if (startedThemes.has(theme)) return
   startedThemes.add(theme)
   // 長時間表示のサイネージで素材と IndexedDB がブラウザの容量整理で消されないよう永続化を求める
-  void navigator.storage?.persist?.().catch(() => {
+  void globalThis.navigator?.storage?.persist?.().catch(() => {
     /* 非対応・拒否でも動作に影響しない */
   })
   void (async () => {
     const store = await openAssetCache()
-    await Promise.all(assetPaths(theme).map((url) => preloadOne(store, url)))
+    await Promise.all(
+      assetPaths(theme).map(async (url) => {
+        const result = await preloadOne(store, url)
+        markStartAssetResolved(theme, url, result)
+      }),
+    )
   })()
 }
 
@@ -123,4 +207,11 @@ export function preloadSignageAssets(theme: ThemeId): void {
 export function assetUrl(url: string): string | null {
   const hit = cache.get(url)
   return hit === undefined ? url : hit
+}
+
+/** preload.ts の内部状態をテストごとに初期化する */
+export function resetPreloadForTesting(): void {
+  cache.clear()
+  startedThemes.clear()
+  startAssetStates.clear()
 }
