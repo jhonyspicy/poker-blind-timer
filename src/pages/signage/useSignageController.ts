@@ -29,9 +29,10 @@ import {
 import { MESSAGE_NAME, type CommandAck, type RemoteCommand } from '../../realtime/messages'
 import { buildSnapshot } from '../../realtime/snapshot'
 import { getConfig, loadRoom, loadSession, saveSession } from '../../storage/db'
+import type { EffectEvent } from './events'
 import { preloadSignageAssets } from './preload'
 import { playSound } from './sounds'
-import type { VideoEvent } from './VideoOverlay'
+import { DEFAULT_EFFECT_TIMEOUT_MS, resolveTheme } from './themes'
 
 export type SignagePhase = 'waiting' | 'timer' | 'break' | 'champion'
 
@@ -43,18 +44,14 @@ export interface SignageData {
   roomName: string
   now: number
   phase: SignagePhase
-  /** 再生中の演出動画イベント。null なら非表示 */
-  overlayEvent: VideoEvent | null
-  onOverlayDone: (event: VideoEvent) => void
-  onOverlayStarted: (event: VideoEvent) => void
+  /** 表示中の演出イベント。null なら演出なし */
+  effectEvent: EffectEvent | null
+  /** 演出から「ドメインへの影響を進めてよい」合図を受け取る。安定した参照 */
+  onEffectAdvance: (event: EffectEvent) => void
+  /** 演出の終了を受け取る。安定した参照 */
+  onEffectDone: (event: EffectEvent) => void
 }
 
-/** 開始演出の再生開始からタイマー画面へ遷移するまでの時間 */
-const START_SCREEN_DELAY_MS = 7_000
-/** 開始演出の再生開始からタイマーが動き出すまでの時間 */
-const START_TIMER_DELAY_MS = 8_000
-/** 優勝演出の再生開始から優勝画面へ遷移するまでの時間 */
-const CHAMPION_SCREEN_DELAY_MS = 7_000
 /** 優勝確定から Ably 接続を切断するまでの猶予(最終スナップショットの配信を待つ) */
 const CHAMPION_DISCONNECT_DELAY_MS = 5_000
 
@@ -71,7 +68,7 @@ export function useSignageController(): SignageControllerState {
   const [config, setConfig] = useState<TournamentConfig | null>(null)
   const [roomName, setRoomName] = useState('')
   const [now, setNow] = useState(() => Date.now())
-  const [overlayQueue, setOverlayQueue] = useState<VideoEvent[]>([])
+  const [effectQueue, setEffectQueue] = useState<EffectEvent[]>([])
 
   // セッションの正本。コマンドが連続受信されても更新が失われないよう、
   // コールバックからは常にこの ref を読み、commitSession で同期的に書き換える
@@ -92,10 +89,9 @@ export function useSignageController(): SignageControllerState {
   const lateRegWasOpenRef = useRef<boolean | null>(null)
   /** START 受信済みで開始演出~タイマー起動待ちの間 true(START の二重処理防止) */
   const startPendingRef = useRef(false)
-  const startTimeouts = useRef<number[]>([])
-  /** 開始演出の途中(再生開始+7 秒)からタイマー画面を先に見せるためのフラグ */
-  const [earlyTimerScreen, setEarlyTimerScreen] = useState(false)
-  /** 優勝演出の再生開始+7 秒まで優勝画面への遷移を保留するフラグ */
+  /** 合図を処理済みの演出イベント(演出の重複呼び出しとタイムアウトの肩代わりを冪等にする) */
+  const advancedEffects = useRef(new Set<EffectEvent>())
+  /** 優勝演出が合図を返すまで優勝画面への遷移を保留するフラグ */
   const [championHold, setChampionHold] = useState(false)
 
   // ---- 初期読み込み ----
@@ -116,8 +112,12 @@ export function useSignageController(): SignageControllerState {
         setLoaded('no-session')
         return
       }
-      // 素材はテーマ別ディレクトリにあるため、設定を読んでテーマが決まってから先読みする
-      preloadSignageAssets(resolveThemeId(storedConfig.theme))
+      // 素材はテーマ別ディレクトリにあり、対象もテーマの宣言で決まるため、
+      // 設定を読んでテーマが決まってから先読みする
+      preloadSignageAssets(
+        resolveThemeId(storedConfig.theme),
+        resolveTheme(storedConfig.theme).assets ?? [],
+      )
       sessionRef.current = storedSession
       configRef.current = storedConfig
       setSession(storedSession)
@@ -149,12 +149,12 @@ export function useSignageController(): SignageControllerState {
     (next: SessionState, cfg: TournamentConfig, nowMs: number): SessionState => {
       const stats = deriveStats(next.histories)
       const played = new Set(next.playedEffects ?? [])
-      const fire = (event: VideoEvent) => {
+      const fire = (event: EffectEvent) => {
         if (played.has(event)) return
         played.add(event)
-        // 優勝画面は演出の再生開始+7 秒まで保留する(再生できなければ演出終了時に解除)
+        // 優勝画面は演出が合図を返すまで保留する(演出が無ければ終了時に即解除される)
         if (event === 'champion') setChampionHold(true)
-        setOverlayQueue((queue) => [...queue, event])
+        setEffectQueue((queue) => [...queue, event])
       }
       // レイトレジ受付中はエントリーで人数が増え得るため、インマネ・ヘッズアップ・優勝は
       // 確定しない。締切後はエントリーが増えないので、バストが無くても現在人数だけで確定する。
@@ -222,11 +222,11 @@ export function useSignageController(): SignageControllerState {
       let next: SessionState | null = null
       switch (command.type) {
         case 'START':
-          // タイマーはここでは開始しない。開始演出の再生開始から 8 秒後に起動する
-          // (素材が無い場合は演出スキップ時に即起動する)
+          // タイマーはここでは開始しない。開始演出が合図を返した時点で起動する
+          // (演出が無い・素材が無い場合はその場で即起動する)
           if (current.timer.status === 'waiting' && !startPendingRef.current) {
             startPendingRef.current = true
-            setOverlayQueue((queue) => [...queue, 'tournament-start'])
+            setEffectQueue((queue) => [...queue, 'tournament-start'])
           }
           break
         case 'PAUSE': {
@@ -456,42 +456,42 @@ export function useSignageController(): SignageControllerState {
     )
   }, [applyMilestones, commitSession])
 
-  const onOverlayStarted = useCallback(
-    (event: VideoEvent) => {
-      if (event === 'tournament-start') {
-        // 再生開始から 7 秒でタイマー画面へ切り替え、8 秒でタイマーを起動する
-        startTimeouts.current.push(
-          window.setTimeout(() => setEarlyTimerScreen(true), START_SCREEN_DELAY_MS),
-        )
-        startTimeouts.current.push(
-          window.setTimeout(startTournamentIfWaiting, START_TIMER_DELAY_MS),
-        )
-      } else if (event === 'champion') {
-        // 再生開始から 7 秒で優勝画面へ切り替える
-        startTimeouts.current.push(
-          window.setTimeout(() => setChampionHold(false), CHAMPION_SCREEN_DELAY_MS),
-        )
-      }
-    },
-    [startTournamentIfWaiting],
-  )
-
-  const onOverlayDone = useCallback(
-    (event: VideoEvent) => {
-      // 素材未配置・再生失敗・短い動画でも、タイマー起動と優勝画面遷移が必ず行われるようにする
+  /**
+   * 演出からの「ドメインへの影響を進めてよい」合図。合図の時刻は演出(テーマ)が決める。
+   * 重複呼び出しと、タイムアウトによる共有層の肩代わりを同じ経路で冪等に扱う
+   */
+  const onEffectAdvance = useCallback(
+    (event: EffectEvent) => {
+      if (advancedEffects.current.has(event)) return
+      advancedEffects.current.add(event)
       if (event === 'tournament-start') startTournamentIfWaiting()
-      if (event === 'champion') setChampionHold(false)
-      setOverlayQueue((queue) => queue.slice(1))
+      else if (event === 'champion') setChampionHold(false)
     },
     [startTournamentIfWaiting],
   )
 
-  useEffect(
-    () => () => {
-      startTimeouts.current.forEach(clearTimeout)
+  const onEffectDone = useCallback(
+    (event: EffectEvent) => {
+      // 素材未配置・再生失敗・合図より短い演出でも、タイマー起動と優勝画面遷移が
+      // 必ず行われるようにする
+      onEffectAdvance(event)
+      setEffectQueue((queue) => (queue[0] === event ? queue.slice(1) : queue))
     },
-    [],
+    [onEffectAdvance],
   )
+
+  // ---- 演出を持たないテーマの消化と、応答しない演出の打ち切り ----
+  const theme = resolveTheme(config?.theme)
+  const effectEvent = effectQueue[0] ?? null
+  useEffect(() => {
+    if (!effectEvent) return
+    // 演出を持たないテーマは待たずに消化する(開始操作でそのままタイマーが動き出す)。
+    // 演出を持つテーマでは、実装ミスや低速環境での再生遅延がトーナメントの進行を
+    // 止めたり画面を長時間占有したりしないよう、共有層で上限を設ける
+    const limitMs = theme.EffectOverlay ? (theme.effectTimeoutMs ?? DEFAULT_EFFECT_TIMEOUT_MS) : 0
+    const id = window.setTimeout(() => onEffectDone(effectEvent), limitMs)
+    return () => window.clearTimeout(id)
+  }, [effectEvent, theme, onEffectDone])
 
   if (loaded === 'loading') return 'loading'
   if (loaded === 'no-session' || !session || !config) return 'no-session'
@@ -504,15 +504,13 @@ export function useSignageController(): SignageControllerState {
     (resolved.status === 'running' || resolved.status === 'paused') &&
     displayConfig.structure[resolved.levelIndex]?.kind === 'break'
   // レイトレジ受付中はエントリーで人数が戻り得るため優勝を確定させない。
-  // 優勝確定でも championHold の間(優勝演出の再生開始+7 秒まで)は元の画面に留まる
+  // 優勝確定でも championHold の間(優勝演出が合図を返すまで)は元の画面に留まる
   const lateRegOpen = lateRegStatus(session.timer, displayConfig.structure, now).kind === 'open'
   const phase: SignagePhase =
     isChampionDecided(stats) && !lateRegOpen && !championHold
       ? 'champion'
       : resolved.status === 'waiting'
-        ? earlyTimerScreen
-          ? 'timer'
-          : 'waiting'
+        ? 'waiting'
         : onBreak
           ? 'break'
           : 'timer'
@@ -524,8 +522,8 @@ export function useSignageController(): SignageControllerState {
     roomName,
     now,
     phase,
-    overlayEvent: overlayQueue[0] ?? null,
-    onOverlayDone,
-    onOverlayStarted,
+    effectEvent,
+    onEffectAdvance,
+    onEffectDone,
   }
 }

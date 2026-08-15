@@ -4,7 +4,6 @@ import { useWakeLock } from '../../hooks/useWakeLock'
 import AudioUnlockNotice from './AudioUnlockNotice'
 import { resolveTheme } from './themes'
 import { useSignageController, type SignageData } from './useSignageController'
-import VideoOverlay from './VideoOverlay'
 
 function SignageBody({ data }: { data: SignageData }) {
   const { config, session, roomName, now, phase } = data
@@ -43,8 +42,8 @@ function SignageBody({ data }: { data: SignageData }) {
 
 /**
  * サイネージ画面。保存済みセッションから待機 / タイマー / ブレイク / 優勝を表示し、
- * リモコンのコマンドと演出動画オーバーレイを制御する。
- * 画面コンポーネント一式と素材は設定のテーマに応じて切り替わる
+ * リモコンのコマンドと演出オーバーレイを制御する。
+ * 画面コンポーネント一式・演出・素材は設定のテーマに応じて切り替わる
  */
 export default function SignagePage() {
   const state = useSignageController()
@@ -65,16 +64,19 @@ export default function SignagePage() {
       </main>
     )
   }
+  // 演出はテーマが提供する。持たないテーマでは何も描画せず、コントローラ側が
+  // イベントを即座に消化する
+  const { EffectOverlay } = resolveTheme(state.theme)
   return (
     <>
       <SignageBody data={state} />
-      {state.overlayEvent && (
-        <VideoOverlay
-          key={state.overlayEvent}
+      {EffectOverlay && state.effectEvent && (
+        <EffectOverlay
+          key={state.effectEvent}
           theme={state.theme}
-          event={state.overlayEvent}
-          onDone={state.onOverlayDone}
-          onStarted={state.onOverlayStarted}
+          event={state.effectEvent}
+          onAdvance={state.onEffectAdvance}
+          onDone={state.onEffectDone}
         />
       )}
       <AudioUnlockNotice />

@@ -8,12 +8,10 @@ import type { ThemeId } from '../../domain/theme'
  * ネットワークを待たずにディスクから即復元する(復元後に ETag で
  * 再検証し、更新された素材は次回リロードから反映する)。
  * 404 の素材は「無し」として記録し、再生側が即スキップできるようにする。
- * 素材はテーマ別ディレクトリ(public/themes/<テーマ名>/)から解決する
+ *
+ * 先読みの対象はテーマの宣言(SignageTheme.assets)だけで、テーマが持たない素材を
+ * 取りに行くことはない。素材はテーマ別ディレクトリ(public/themes/<テーマ名>/)から解決する
  */
-
-const VIDEO_EVENTS = ['tournament-start', 'in-the-money', 'heads-up', 'champion'] as const
-const SOUND_EVENTS = ['level-up-warning', 'level-up', 'break-start', 'pause', 'resume'] as const
-const IMAGE_PATHS = ['images/champion.png'] as const
 
 /** Cache Storage のキャッシュ名。保存形式を変えるときは版を上げて古い側を破棄する */
 const CACHE_NAME = 'signage-assets-v1'
@@ -26,17 +24,6 @@ export function themeAssetPath(theme: ThemeId, relativePath: string): string {
 /** 元 URL → blob URL(取得成功) / null(404 = 素材なし) */
 const cache = new Map<string, string | null>()
 const startedThemes = new Set<ThemeId>()
-
-function assetPaths(theme: ThemeId): string[] {
-  return [
-    ...VIDEO_EVENTS.flatMap((event) => [
-      themeAssetPath(theme, `videos/${event}.webm`),
-      themeAssetPath(theme, `videos/${event}.ogg`),
-    ]),
-    ...SOUND_EVENTS.map((event) => themeAssetPath(theme, `sounds/${event}.ogg`)),
-    ...IMAGE_PATHS.map((path) => themeAssetPath(theme, path)),
-  ]
-}
 
 /** Cache Storage が使えない環境(非セキュアコンテキスト等)では null を返し、従来のメモリのみ動作にフォールバックする */
 async function openAssetCache(): Promise<Cache | null> {
@@ -101,8 +88,13 @@ async function preloadOne(store: Cache | null, url: string): Promise<void> {
   }
 }
 
-/** テーマの全素材のダウンロードを開始する(同一テーマの多重呼び出しは無視)。完了を待つ必要はない */
-export function preloadSignageAssets(theme: ThemeId): void {
+/**
+ * テーマが宣言した素材のダウンロードを開始する(同一テーマの多重呼び出しは無視)。
+ * 完了を待つ必要はない。
+ *
+ * @param assets テーマディレクトリ起点の相対パス(SignageTheme.assets)
+ */
+export function preloadSignageAssets(theme: ThemeId, assets: readonly string[]): void {
   if (startedThemes.has(theme)) return
   startedThemes.add(theme)
   // 長時間表示のサイネージで素材と IndexedDB がブラウザの容量整理で消されないよう永続化を求める
@@ -111,7 +103,7 @@ export function preloadSignageAssets(theme: ThemeId): void {
   })
   void (async () => {
     const store = await openAssetCache()
-    await Promise.all(assetPaths(theme).map((url) => preloadOne(store, url)))
+    await Promise.all(assets.map((path) => preloadOne(store, themeAssetPath(theme, path))))
   })()
 }
 
