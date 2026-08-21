@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { deriveStats } from '../../domain/stats'
 import { useWakeLock } from '../../hooks/useWakeLock'
 import AudioUnlockNotice from './AudioUnlockNotice'
+import RemoteQrButton from './RemoteQrButton'
 import { resolveTheme } from './themes'
 import { useSignageController, type SignageData } from './useSignageController'
 
@@ -78,6 +79,10 @@ export default function SignagePage() {
           onAdvance={state.onEffectAdvance}
           onDone={state.onEffectDone}
         />
+      )}
+      {/* リモコンを失くした運営者の救済。優勝画面ではトーナメント終了済みのため出さない */}
+      {state.phase !== 'champion' && state.session.channelId && (
+        <RemoteQrButton channelId={state.session.channelId} />
       )}
       <AudioUnlockNotice />
     </>

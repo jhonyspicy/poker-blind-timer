@@ -1,0 +1,111 @@
+/* リモコン QR 再表示ボタン(右上)と QR ダイアログ。
+   画面の演出より下(演出中は隠れてよい)、テーマの各画面より上に置く */
+
+.button {
+  position: fixed;
+  top: 1.2vw;
+  right: 1.2vw;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  width: clamp(36px, 3.2vw, 64px);
+  height: clamp(36px, 3.2vw, 64px);
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  /* プレイヤー向け表示の邪魔にならないよう控えめにし、操作時だけ浮き上がらせる */
+  opacity: 0.6;
+  transition:
+    opacity 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.button:hover,
+.button:focus-visible {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+}
+
+.icon {
+  width: 60%;
+  height: 60%;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(12px, 1.6vh, 24px);
+  max-width: 90vw;
+  padding: clamp(20px, 3vh, 40px) clamp(24px, 3vw, 56px);
+  border-radius: 16px;
+  border: 1px solid rgba(201, 162, 74, 0.6);
+  background: #0a0a08;
+  color: #fff;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(20px, 2.4vw, 40px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.qrBox {
+  padding: 12px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.qrBox svg {
+  display: block;
+  width: clamp(200px, 30vmin, 360px);
+  height: auto;
+}
+
+.hint {
+  margin: 0;
+  font-size: clamp(14px, 1.5vw, 26px);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.url {
+  margin: 0;
+  max-width: 70vw;
+  font-size: clamp(12px, 1.1vw, 20px);
+  color: rgba(255, 255, 255, 0.6);
+  word-break: break-all;
+  user-select: all;
+}
+
+.close {
+  margin-top: clamp(4px, 0.8vh, 12px);
+  padding: 0.6em 2.4em;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: clamp(14px, 1.4vw, 24px);
+  cursor: pointer;
+}
+
+.close:hover,
+.close:focus-visible {
+  background: rgba(255, 255, 255, 0.18);
+}
