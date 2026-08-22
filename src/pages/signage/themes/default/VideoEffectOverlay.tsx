@@ -1,28 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { ThemeId } from '../../domain/theme'
-import { assetUrl, themeAssetPath } from './preload'
-import styles from './VideoOverlay.module.css'
-
-export type VideoEvent = 'tournament-start' | 'in-the-money' | 'heads-up' | 'champion'
+import type { EffectOverlayProps } from '../../events'
+import { assetUrl, themeAssetPath } from '../../preload'
+import styles from './VideoEffectOverlay.module.css'
 
 /**
- * 演出動画のオーバーレイ再生。webm(映像のみ・透過可)+ogg(音声)を同時再生する。
+ * 標準テーマの演出: 動画のオーバーレイ再生。webm(映像のみ・透過可)+ ogg(音声)を
+ * 同時再生する(透過 webm に音声を含めると再生バグがあるため分離している)。
  * `public/themes/<テーマ名>/videos/<イベント名>.webm` が無ければ即座に onDone を呼んで
  * 何も表示しない。呼び出し側は key={event} を付けてイベントごとに作り直すこと
  */
-export default function VideoOverlay({
+
+/** 再生開始から進行の合図(タイマー起動 / 優勝画面への遷移)までの時間 */
+const ADVANCE_DELAY_MS = 7_000
+
+/** 再生停滞とみなすまでの秒数。オーバーレイが永久に残らないようにするための監視 */
+const STALL_LIMIT_SECONDS = 5
+
+export default function VideoEffectOverlay({
   theme,
   event,
+  onAdvance,
   onDone,
-  onStarted,
-}: {
-  theme: ThemeId
-  event: VideoEvent
-  /** 再生終了・失敗・素材なしのときに 1 回呼ばれる。安定した参照を渡すこと */
-  onDone: (event: VideoEvent) => void
-  /** 実際に再生が始まったときに 1 回呼ばれる(開始演出などの予約に使う)。安定した参照を渡すこと */
-  onStarted?: (event: VideoEvent) => void
-}) {
+}: EffectOverlayProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const doneRef = useRef(false)
@@ -49,16 +48,21 @@ export default function VideoOverlay({
       audioRef.current?.pause()
       onDone(event)
     }
-    // 再生停滞の監視: currentTime が 5 秒進まなければ終了扱いにして
+    // 再生停滞の監視: currentTime が一定時間進まなければ終了扱いにして
     // オーバーレイ(と後続の演出待ち)が永久に残らないようにする
     let watchdog: number | null = null
+    let advanceTimer: number | null = null
     let lastTime = -1
     let stallSeconds = 0
     const onCanPlay = () => {
       setVisible(true)
       void video
         .play()
-        .then(() => onStarted?.(event))
+        .then(() => {
+          // 再生開始を基準に合図を予約する。再生されなかった場合は finish 側から
+          // 共有層が合図を補完するため、ここでは予約しない
+          advanceTimer ??= window.setTimeout(() => onAdvance(event), ADVANCE_DELAY_MS)
+        })
         .catch(finish)
       void audioRef.current?.play().catch(() => {
         /* 音声は無くても映像だけ再生する */
@@ -68,7 +72,7 @@ export default function VideoOverlay({
         if (video.currentTime > lastTime) {
           lastTime = video.currentTime
           stallSeconds = 0
-        } else if (++stallSeconds >= 5) {
+        } else if (++stallSeconds >= STALL_LIMIT_SECONDS) {
           finish()
         }
       }, 1000)
@@ -85,9 +89,10 @@ export default function VideoOverlay({
       video.removeEventListener('ended', finish)
       video.removeEventListener('error', finish)
       window.clearTimeout(timeout)
+      if (advanceTimer !== null) window.clearTimeout(advanceTimer)
       if (watchdog !== null) window.clearInterval(watchdog)
     }
-  }, [event, onDone, onStarted, urls])
+  }, [event, onAdvance, onDone, urls])
 
   if (urls.video === null) return null
   return (
