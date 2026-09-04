@@ -20,7 +20,7 @@ import {
 } from '../../domain/timer'
 import { applyStructureUpdate, effectiveConfig } from '../../domain/structureUpdate'
 import { resolveThemeId, type ThemeId } from '../../domain/theme'
-import type { SessionState, TournamentConfig } from '../../domain/types'
+import type { SessionState, TournamentConfig, TournamentStats } from '../../domain/types'
 import {
   ablyChannelName,
   createRealtimeClient,
@@ -32,17 +32,18 @@ import { getConfig, loadRoom, loadSession, saveSession } from '../../storage/db'
 import type { EffectEvent } from './events'
 import { preloadSignageAssets } from './preload'
 import { playSound } from './sounds'
-import { DEFAULT_EFFECT_TIMEOUT_MS, resolveTheme } from './themes'
-
-export type SignagePhase = 'waiting' | 'timer' | 'break' | 'champion'
+import { DEFAULT_EFFECT_TIMEOUT_MS, resolveTheme, type SignagePhase } from './themes'
 
 export interface SignageData {
   session: SessionState
   config: TournamentConfig
   /** 設定から解決済みのテーマ id(未指定・不明は標準テーマ) */
   theme: ThemeId
+  /** 操作履歴から導出済みの統計 */
+  stats: TournamentStats
   roomName: string
   now: number
+  /** 共有層が算出した局面(テーマへは参考値として渡る) */
   phase: SignagePhase
   /** 表示中の演出イベント。null なら演出なし */
   effectEvent: EffectEvent | null
@@ -91,8 +92,9 @@ export function useSignageController(): SignageControllerState {
   const startPendingRef = useRef(false)
   /** 合図を処理済みの演出イベント(演出の重複呼び出しとタイムアウトの肩代わりを冪等にする) */
   const advancedEffects = useRef(new Set<EffectEvent>())
-  /** 優勝演出が合図を返すまで優勝画面への遷移を保留するフラグ */
-  const [championHold, setChampionHold] = useState(false)
+  /** 優勝演出が合図を返すまでタイマー停止を保留するフラグ(優勝画面をいつ表示するかは
+      テーマの判断)。リロード時は演出を再演しないため初期値 false のまま即停止する */
+  const [championTimerHold, setChampionTimerHold] = useState(false)
 
   // ---- 初期読み込み ----
   useEffect(() => {
@@ -152,8 +154,8 @@ export function useSignageController(): SignageControllerState {
       const fire = (event: EffectEvent) => {
         if (played.has(event)) return
         played.add(event)
-        // 優勝画面は演出が合図を返すまで保留する(演出が無ければ終了時に即解除される)
-        if (event === 'champion') setChampionHold(true)
+        // タイマー停止は演出が合図を返すまで保留する(演出が無ければ終了時に即解除される)
+        if (event === 'champion') setChampionTimerHold(true)
         setEffectQueue((queue) => [...queue, event])
       }
       // レイトレジ受付中はエントリーで人数が増え得るため、インマネ・ヘッズアップ・優勝は
@@ -350,16 +352,16 @@ export function useSignageController(): SignageControllerState {
   }, [loaded])
 
   // ---- 優勝確定後のタイマー停止と切断 ----
-  // タイマーは優勝画面へ切り替わるタイミング(演出のホールド解除時)で止める。
+  // タイマーは優勝演出が合図を返した時点(タイムアウトの肩代わり含む)で止める。
   // 優勝確定と同時に止めると、演出動画(透過)の背後に見えるタイマー画面が
   // 初期表示に戻ってしまうため
   const championDecided = session?.playedEffects?.includes('champion') ?? false
   useEffect(() => {
-    if (!championDecided || championHold) return
+    if (!championDecided || championTimerHold) return
     const current = sessionRef.current
     if (!current || current.timer.status === 'finished') return
     commitSession({ ...current, timer: { status: 'finished' } })
-  }, [championDecided, championHold, commitSession])
+  }, [championDecided, championTimerHold, commitSession])
 
   // トーナメント終了後に余計なメッセージをやり取りしないよう、終了スナップショットの
   // 配信を待ってから Ably 接続を閉じる
@@ -465,7 +467,7 @@ export function useSignageController(): SignageControllerState {
       if (advancedEffects.current.has(event)) return
       advancedEffects.current.add(event)
       if (event === 'tournament-start') startTournamentIfWaiting()
-      else if (event === 'champion') setChampionHold(false)
+      else if (event === 'champion') setChampionTimerHold(false)
     },
     [startTournamentIfWaiting],
   )
@@ -480,15 +482,15 @@ export function useSignageController(): SignageControllerState {
     [onEffectAdvance],
   )
 
-  // ---- 演出を持たないテーマの消化と、応答しない演出の打ち切り ----
+  // ---- 応答しない演出の打ち切り ----
   const theme = resolveTheme(config?.theme)
   const effectEvent = effectQueue[0] ?? null
   useEffect(() => {
     if (!effectEvent) return
-    // 演出を持たないテーマは待たずに消化する(開始操作でそのままタイマーが動き出す)。
-    // 演出を持つテーマでは、実装ミスや低速環境での再生遅延がトーナメントの進行を
-    // 止めたり画面を長時間占有したりしないよう、共有層で上限を設ける
-    const limitMs = theme.EffectOverlay ? (theme.effectTimeoutMs ?? DEFAULT_EFFECT_TIMEOUT_MS) : 0
+    // イベントの消化(onDone)はテーマの義務だが、実装ミス・素材不備・低速環境での
+    // 再生遅延がトーナメントの進行を止めたり画面を長時間占有したりしないよう、
+    // 共有層で上限を設けて合図と終了を肩代わりする
+    const limitMs = theme.effectTimeoutMs ?? DEFAULT_EFFECT_TIMEOUT_MS
     const id = window.setTimeout(() => onEffectDone(effectEvent), limitMs)
     return () => window.clearTimeout(id)
   }, [effectEvent, theme, onEffectDone])
@@ -504,10 +506,10 @@ export function useSignageController(): SignageControllerState {
     (resolved.status === 'running' || resolved.status === 'paused') &&
     displayConfig.structure[resolved.levelIndex]?.kind === 'break'
   // レイトレジ受付中はエントリーで人数が戻り得るため優勝を確定させない。
-  // 優勝確定でも championHold の間(優勝演出が合図を返すまで)は元の画面に留まる
+  // 優勝確定でもタイマー停止(優勝演出の合図)までは元の局面に留まる
   const lateRegOpen = lateRegStatus(session.timer, displayConfig.structure, now).kind === 'open'
   const phase: SignagePhase =
-    isChampionDecided(stats) && !lateRegOpen && !championHold
+    isChampionDecided(stats) && !lateRegOpen && resolved.status === 'finished'
       ? 'champion'
       : resolved.status === 'waiting'
         ? 'waiting'
@@ -519,6 +521,7 @@ export function useSignageController(): SignageControllerState {
     session,
     config: displayConfig,
     theme: resolveThemeId(config.theme),
+    stats,
     roomName,
     now,
     phase,

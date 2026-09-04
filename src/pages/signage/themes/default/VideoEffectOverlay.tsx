@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { EffectOverlayProps } from '../../events'
+import type { ThemeId } from '../../../../domain/theme'
+import type { EffectEvent } from '../../events'
 import { assetUrl, themeAssetPath } from '../../preload'
 import styles from './VideoEffectOverlay.module.css'
 
@@ -9,6 +10,16 @@ import styles from './VideoEffectOverlay.module.css'
  * `public/themes/<テーマ名>/videos/<イベント名>.webm` が無ければ即座に onDone を呼んで
  * 何も表示しない。呼び出し側は key={event} を付けてイベントごとに作り直すこと
  */
+
+interface VideoEffectOverlayProps {
+  /** 素材の解決に使うテーマ id */
+  theme: ThemeId
+  event: EffectEvent
+  /** SignageThemeProps.onAdvance をそのまま渡す。合図の時刻はこのコンポーネントが決める */
+  onAdvance: (event: EffectEvent) => void
+  /** SignageThemeProps.onDone をそのまま渡す。素材なし・再生失敗でも必ず 1 回呼ぶ */
+  onDone: (event: EffectEvent) => void
+}
 
 /** 再生開始から進行の合図(タイマー起動 / 優勝画面への遷移)までの時間 */
 const ADVANCE_DELAY_MS = 7_000
@@ -21,7 +32,7 @@ export default function VideoEffectOverlay({
   event,
   onAdvance,
   onDone,
-}: EffectOverlayProps) {
+}: VideoEffectOverlayProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const doneRef = useRef(false)
