@@ -8,6 +8,10 @@ describe('resolveThemeId', () => {
     }
   })
 
+  it('GILDED テーマを提供している', () => {
+    expect(resolveThemeId('gilded')).toBe('gilded')
+  })
+
   it('未指定(旧データ)は標準テーマに解決する', () => {
     expect(resolveThemeId(undefined)).toBe(DEFAULT_THEME_ID)
   })

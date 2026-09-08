@@ -7,7 +7,10 @@
 export const DEFAULT_THEME_ID = 'default'
 
 /** 提供中のテーマ一覧。テーマを追加したらここと画面レジストリの両方に登録する */
-export const THEMES = [{ id: DEFAULT_THEME_ID, label: 'スタンダード' }] as const
+export const THEMES = [
+  { id: DEFAULT_THEME_ID, label: 'スタンダード' },
+  { id: 'gilded', label: 'GILDED' },
+] as const
 
 export type ThemeId = (typeof THEMES)[number]['id']
 

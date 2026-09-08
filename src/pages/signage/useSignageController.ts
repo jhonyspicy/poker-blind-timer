@@ -222,6 +222,8 @@ export function useSignageController(): SignageControllerState {
       processedRequestIds.current.add(command.requestId)
       const nowMs = Date.now()
       let next: SessionState | null = null
+      // 記録コマンドの効果音。優勝確定の判定(applyMilestones)後に鳴らし分けるため保留する
+      let historySound: 'entry' | 'bust' | null = null
       switch (command.type) {
         case 'START':
           // タイマーはここでは開始しない。開始演出が合図を返した時点で起動する
@@ -264,6 +266,10 @@ export function useSignageController(): SignageControllerState {
             ...(command.chip !== undefined ? { chip: command.chip } : {}),
           })
           next = { ...current, histories: result.histories, nextHistoryId: result.nextHistoryId }
+          // エントリー(リバイ / 再エントリー含む)とバストの記録に効果音を鳴らす。
+          // 素材を置いていないテーマでは無音でスキップされる
+          if (command.command === 'entry') historySound = 'entry'
+          else if (command.command === 'bust') historySound = 'bust'
           break
         }
         case 'HISTORY_UPDATE':
@@ -303,7 +309,17 @@ export function useSignageController(): SignageControllerState {
       }
       // ストラクチャー上書きの採用で締切条件が変わり得るため、演出判定は
       // 適用後のセッションから導いた実効 config で行う
-      if (next) commitSession(applyMilestones(next, effectiveConfig(next, baseCfg), nowMs))
+      if (next) {
+        const applied = applyMilestones(next, effectiveConfig(next, baseCfg), nowMs)
+        // 優勝を確定させたバスト(2 人 → 1 人)はバスト音の代わりに優勝音を鳴らす
+        // (優勝確定後のコマンドは冒頭で拒否済みのため、ここで含まれていれば今回の確定)
+        if (historySound === 'bust' && applied.playedEffects?.includes('champion')) {
+          playSound(theme, 'champion')
+        } else if (historySound) {
+          playSound(theme, historySound)
+        }
+        commitSession(applied)
+      }
       sendAck(command.requestId, 'accepted')
     },
     [applyMilestones, commitSession, sendAck],

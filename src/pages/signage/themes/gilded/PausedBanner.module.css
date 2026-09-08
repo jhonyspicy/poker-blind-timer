@@ -1,0 +1,92 @@
+/* デザインモック Pause Overlay.dc.html の移植(バンド高 220px / 文字 150px) */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  animation: fadeIn 0.3s ease both;
+}
+
+.dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 11, 8, 0.55);
+}
+
+.band {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  background: #06130e;
+  border-top: 3px solid #c9a44c;
+  border-bottom: 3px solid #c9a44c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 56px;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.6);
+}
+
+.stripesL,
+.stripesR {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 18%;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 16px,
+    rgba(201, 164, 76, 0.55) 16px 18px
+  );
+}
+
+.stripesL {
+  left: 0;
+  -webkit-mask-image: linear-gradient(to right, #000 40%, transparent);
+  mask-image: linear-gradient(to right, #000 40%, transparent);
+}
+
+.stripesR {
+  right: 0;
+  -webkit-mask-image: linear-gradient(to left, #000 40%, transparent);
+  mask-image: linear-gradient(to left, #000 40%, transparent);
+}
+
+.pauseIcon {
+  display: flex;
+  gap: 18px;
+  height: 108px;
+  margin-top: 3px;
+}
+
+.pauseBar {
+  width: 30px;
+  background: #e0a83a;
+}
+
+.label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 150px;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  color: #f3ead0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    animation: none;
+  }
+}

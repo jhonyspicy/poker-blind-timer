@@ -1,0 +1,392 @@
+/* デザインモック Tournament Clock.dc.html の移植。数値は 1920×1080 の論理px */
+
+.page {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #050b08;
+  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+  color: #f3ead0;
+}
+
+.stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1080px;
+  background: radial-gradient(ellipse at 50% 40%, #0f2a1f 0%, #0a1d15 55%, #06130e 100%);
+  display: grid;
+  grid-template-rows: 200px 730px 150px;
+  transition: filter 0.4s ease;
+}
+
+/* レベルアップ時の発光ブースト */
+.stageBoost {
+  filter: brightness(1.4);
+}
+
+/* ---- ヘッダー ---- */
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  border-bottom: 2px solid #c9a44c;
+}
+
+.club {
+  font-size: 30px;
+  letter-spacing: 0.28em;
+  color: #c9a44c;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.title {
+  font-family: 'Bebas Neue', 'Noto Sans JP', sans-serif;
+  font-size: 88px;
+  letter-spacing: 0.12em;
+  /* overflow: hidden(長文の省略)と併用するため、グリフの上下が
+     切れない行高を確保する(和文フォールバック時は 1 だと上端が欠ける) */
+  line-height: 1.25;
+  max-width: 1800px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- 本体 3 カラム ---- */
+
+.body {
+  display: grid;
+  grid-template-columns: 420px minmax(0, 1fr) 400px;
+  grid-template-rows: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ---- 左: PRIZE LIST ---- */
+
+.prizePanel {
+  border-right: 2px solid #c9a44c;
+  padding: 36px 48px 24px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.prizeHeader {
+  font-size: 30px;
+  letter-spacing: 0.22em;
+  color: #c9a44c;
+  font-weight: 600;
+  text-align: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #c9a44c;
+}
+
+.prizeList {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+}
+
+.prizeRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex: none;
+  min-height: 88px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(201, 164, 76, 0.45);
+}
+
+.prizeRowFirst {
+  color: #c9a44c;
+}
+
+.prizePlace {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  flex: none;
+}
+
+.prizeRowFirst .prizePlace {
+  font-size: 60px;
+}
+
+.prizeAmount {
+  font-weight: 600;
+  font-size: 46px;
+  line-height: 1.15;
+  text-align: right;
+  max-height: 2.3em;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.prizeRowFirst .prizeAmount {
+  font-size: 52px;
+}
+
+.prizeAmountMedium {
+  font-size: 36px;
+}
+
+.prizeRowFirst .prizeAmountMedium {
+  font-size: 42px;
+}
+
+.prizeAmountLong {
+  font-size: 30px;
+}
+
+.prizeRowFirst .prizeAmountLong {
+  font-size: 34px;
+}
+
+/* ---- 中央 ---- */
+
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 56px 16px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.badgeRow {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  width: 100%;
+}
+
+.badgeLine {
+  flex: 1;
+  height: 1px;
+  background: #c9a44c;
+}
+
+.badge {
+  border: 2px solid #c9a44c;
+  padding: 8px 32px;
+  clip-path: polygon(
+    14px 0,
+    calc(100% - 14px) 0,
+    100% 50%,
+    calc(100% - 14px) 100%,
+    14px 100%,
+    0 50%
+  );
+}
+
+.badgeText {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px;
+  color: #c9a44c;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.timerArea {
+  position: relative;
+  margin: 10px 0 0;
+}
+
+.time {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 380px;
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: color 0.4s ease;
+}
+
+.timeLong {
+  font-size: 280px;
+}
+
+.timeWarning {
+  color: #c9a44c;
+}
+
+.centerRule {
+  width: 100%;
+  height: 2px;
+  background: #c9a44c;
+  margin: 4px 0 12px;
+}
+
+.blindsGrid {
+  display: grid;
+  grid-template-columns: 1.4fr 1px 1fr;
+  width: 100%;
+  column-gap: 32px;
+  text-align: center;
+}
+
+.blindsDivider {
+  background: #c9a44c;
+}
+
+.smallLabel {
+  font-size: 30px;
+  letter-spacing: 0.22em;
+  color: #c9a44c;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.blindsValue {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 92px;
+  margin-top: 6px;
+  white-space: nowrap;
+}
+
+.nextRow {
+  display: flex;
+  align-items: baseline;
+  gap: 28px;
+  margin-top: 14px;
+}
+
+.nextLabel {
+  color: #c9a44c;
+  font-size: 26px;
+  letter-spacing: 0.2em;
+  font-weight: 600;
+}
+
+.nextValue {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 38px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* ---- 右: 統計 ---- */
+
+.statsPanel {
+  border-left: 2px solid #c9a44c;
+  padding: 24px 40px;
+  display: grid;
+  grid-template-rows: 1fr 1fr 1fr;
+  text-align: center;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.statCell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.statCellDivided {
+  border-bottom: 1px solid #c9a44c;
+}
+
+.playersRow {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 14px;
+  font-family: 'Bebas Neue', sans-serif;
+  line-height: 1;
+  margin-top: 10px;
+}
+
+.playersValue {
+  font-size: 104px;
+}
+
+.playersTotal {
+  font-size: 48px;
+  color: #c9a44c;
+}
+
+.statValue {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 92px;
+  line-height: 1;
+  margin-top: 10px;
+}
+
+/* ---- フッター ---- */
+
+.footer {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  border-top: 2px solid #c9a44c;
+}
+
+.footerCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+}
+
+.footerCellDivided {
+  border-right: 2px solid #c9a44c;
+}
+
+.footerLabel {
+  font-size: 44px;
+  letter-spacing: 0.14em;
+  color: #c9a44c;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.footerValue {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 108px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.footerNote {
+  font-size: 26px;
+  letter-spacing: 0.14em;
+  color: #c9a44c;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.lateRegBadge {
+  border: 2px solid #c9a44c;
+  padding: 8px 26px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 40px;
+  letter-spacing: 0.1em;
+  line-height: 1;
+}
+
+.lateRegOpen {
+  color: #c9a44c;
+}
+
+.lateRegClosed {
+  color: rgba(243, 234, 208, 0.5);
+}

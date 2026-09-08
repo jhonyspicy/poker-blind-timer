@@ -1,0 +1,84 @@
+/* デザインモック Champion Screen.dc.html の移植。数値は 1920×1080 の論理px */
+
+.page {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #071411;
+}
+
+.stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1080px;
+  background-color: #071411;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  color: #f3e6c4;
+  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+}
+
+.textBlock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 200px;
+}
+
+.club {
+  font-weight: 700;
+  font-size: 190px;
+  line-height: 0.95;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+  background: linear-gradient(180deg, #fff7e3 0%, #f1e1bd 60%, #e0c895 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 96px;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  margin-top: 8px;
+  color: #c9a24e;
+}
+
+.champion {
+  font-family: 'Anton', 'Noto Sans JP', sans-serif;
+  font-weight: 400;
+  font-size: 330px;
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+  margin-top: 14px;
+  background: linear-gradient(180deg, #f6dc93 0%, #cfa955 45%, #b48a3a 70%, #e8c76f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 6px 0 rgba(0, 0, 0, 0.35));
+}
+
+.crownRule {
+  display: block;
+  margin-top: 12px;
+}

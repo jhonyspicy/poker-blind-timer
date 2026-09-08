@@ -4,6 +4,8 @@ import type { SessionState, TournamentConfig, TournamentStats } from '../../../d
 import type { EffectEvent } from '../events'
 import { DEFAULT_THEME_ASSETS } from './default/assets'
 import DefaultRoot from './default/Root'
+import { GILDED_THEME_ASSETS } from './gilded/assets'
+import GildedRoot from './gilded/Root'
 
 /**
  * サイネージのテーマ = Root コンポーネント 1 個 + 素材ディレクトリ(public/themes/<id>/)+
@@ -75,6 +77,11 @@ const SIGNAGE_THEMES: Record<ThemeId, SignageTheme> = {
   default: {
     Root: DefaultRoot,
     assets: DEFAULT_THEME_ASSETS,
+  },
+  gilded: {
+    Root: GildedRoot,
+    // 演出は CSS のみで動画素材を持たない。音声素材のみ先読みする
+    assets: GILDED_THEME_ASSETS,
   },
 }
 
