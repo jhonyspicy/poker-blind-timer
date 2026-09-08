@@ -1,50 +1,14 @@
 import { Link } from 'react-router'
-import { deriveStats } from '../../domain/stats'
 import { useWakeLock } from '../../hooks/useWakeLock'
 import AudioUnlockNotice from './AudioUnlockNotice'
 import RemoteQrButton from './RemoteQrButton'
 import { resolveTheme } from './themes'
-import { useSignageController, type SignageData } from './useSignageController'
-
-function SignageBody({ data }: { data: SignageData }) {
-  const { config, session, roomName, now, phase } = data
-  const theme = resolveTheme(data.theme)
-  switch (phase) {
-    case 'waiting':
-      return (
-        <theme.WaitingScreen
-          storeName={roomName}
-          config={config}
-          stats={deriveStats(session.histories)}
-        />
-      )
-    case 'break':
-      return (
-        <theme.BreakScreen
-          config={config}
-          session={session}
-          stats={deriveStats(session.histories)}
-          now={now}
-        />
-      )
-    case 'champion':
-      return <theme.ChampionScreen storeName={roomName} config={config} />
-    default:
-      return (
-        <theme.TimerScreen
-          config={config}
-          timer={session.timer}
-          stats={deriveStats(session.histories)}
-          now={now}
-        />
-      )
-  }
-}
+import { useSignageController } from './useSignageController'
 
 /**
- * サイネージ画面。保存済みセッションから待機 / タイマー / ブレイク / 優勝を表示し、
- * リモコンのコマンドと演出オーバーレイを制御する。
- * 画面コンポーネント一式・演出・素材は設定のテーマに応じて切り替わる
+ * サイネージ画面。共有層(useSignageController)が確定させたドメイン状態と
+ * 演出イベントをテーマの Root へ渡す。いつ・どの画面や演出を表示するかはテーマが決める。
+ * リモコン QR の再表示・音声有効化の案内は運営機能のためテーマ外で重ねて表示する
  */
 export default function SignagePage() {
   const state = useSignageController()
@@ -65,22 +29,22 @@ export default function SignagePage() {
       </main>
     )
   }
-  // 演出はテーマが提供する。持たないテーマでは何も描画せず、コントローラ側が
-  // イベントを即座に消化する
-  const { EffectOverlay } = resolveTheme(state.theme)
+  const theme = resolveTheme(state.theme)
   return (
     <>
-      <SignageBody data={state} />
-      {EffectOverlay && state.effectEvent && (
-        <EffectOverlay
-          key={state.effectEvent}
-          theme={state.theme}
-          event={state.effectEvent}
-          onAdvance={state.onEffectAdvance}
-          onDone={state.onEffectDone}
-        />
-      )}
-      {/* リモコンを失くした運営者の救済。優勝画面ではトーナメント終了済みのため出さない */}
+      <theme.Root
+        theme={state.theme}
+        session={state.session}
+        config={state.config}
+        stats={state.stats}
+        roomName={state.roomName}
+        now={state.now}
+        phase={state.phase}
+        effectEvent={state.effectEvent}
+        onAdvance={state.onEffectAdvance}
+        onDone={state.onEffectDone}
+      />
+      {/* リモコンを失くした運営者の救済。優勝局面ではトーナメント終了済みのため出さない */}
       {state.phase !== 'champion' && state.session.channelId && (
         <RemoteQrButton channelId={state.session.channelId} />
       )}

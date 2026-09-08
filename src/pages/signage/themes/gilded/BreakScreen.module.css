@@ -1,0 +1,391 @@
+/* デザインモック Break Screen v2.dc.html の移植。数値は 1920×1080 の論理px */
+
+.page {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #050b08;
+}
+
+.stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1080px;
+  background: radial-gradient(ellipse at 50% 40%, #0f2a1f 0%, #0a1d15 55%, #06130e 100%);
+  color: #f3ead0;
+  font-family: 'Bebas Neue', 'Oswald', 'Noto Sans JP', sans-serif;
+  overflow: hidden;
+}
+
+/* ---- 四隅の三重ブラケット ---- */
+
+.corner {
+  position: absolute;
+}
+
+.tl {
+  border-top: 2px solid #c9a44c;
+  border-left: 2px solid #c9a44c;
+}
+
+.tr {
+  border-top: 2px solid #c9a44c;
+  border-right: 2px solid #c9a44c;
+}
+
+.bl {
+  border-bottom: 2px solid #c9a44c;
+  border-left: 2px solid #c9a44c;
+}
+
+.br {
+  border-bottom: 2px solid #c9a44c;
+  border-right: 2px solid #c9a44c;
+}
+
+/* ---- タイトル ---- */
+
+.titleBlock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.title {
+  font-size: 84px;
+  /* 和文フォールバック時にグリフ上端が欠けないよう、省略(overflow)と両立する行高にする */
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  padding-left: 0.12em;
+  color: #f3ead0;
+  max-width: 1700px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.titleRule {
+  width: 1500px;
+  height: 2px;
+  background: #c9a44c;
+}
+
+.vDivider {
+  position: absolute;
+  left: 864px;
+  top: 190px;
+  bottom: 80px;
+  width: 2px;
+  background: #c9a44c;
+}
+
+/* ---- 左: プライズ一覧 ---- */
+
+.prizeColumn {
+  position: absolute;
+  left: 110px;
+  width: 700px;
+  top: 186px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.prizeHeaderRow {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  width: 100%;
+}
+
+.headerLine {
+  flex: 1;
+  height: 2px;
+  background: #c9a44c;
+}
+
+.prizeHeader {
+  font-size: 60px;
+  line-height: 1;
+  letter-spacing: 0.2em;
+  padding-left: 0.2em;
+  color: #c9a44c;
+}
+
+.prizeList {
+  margin-top: 20px;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 calc(100% - 180px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 180px), transparent 100%);
+}
+
+.prizeRow {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 30px 8px;
+  border-bottom: 1px solid rgba(201, 164, 76, 0.25);
+}
+
+.prizeRankGroup {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex: none;
+}
+
+.prizeRank {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: #c9a44c;
+  width: 58px;
+}
+
+.prizeRankNext {
+  color: #f3ead0;
+}
+
+.prizeTag {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1;
+  letter-spacing: 0.2em;
+  color: #c9a44c;
+  width: 84px;
+}
+
+.prizeAmount {
+  font-family: 'Bebas Neue', 'Noto Sans JP', sans-serif;
+  font-size: 56px;
+  /* 長い景品名は省略せず複数行で表示する */
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  color: #f3ead0;
+  text-align: right;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.prizeAmountMedium {
+  font-size: 42px;
+}
+
+.prizeAmountLong {
+  font-size: 32px;
+}
+
+/* ---- 右: カウントダウン ---- */
+
+.clockColumn {
+  position: absolute;
+  left: 920px;
+  right: 100px;
+  top: 186px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.breakBadge {
+  border: 2px solid #c9a44c;
+  padding: 8px 44px 4px;
+  font-size: 52px;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  padding-left: calc(44px + 0.18em);
+  color: #c9a44c;
+  clip-path: polygon(
+    16px 0,
+    calc(100% - 16px) 0,
+    100% 50%,
+    calc(100% - 16px) 100%,
+    16px 100%,
+    0 50%
+  );
+}
+
+.clock {
+  margin-top: -6px;
+  text-align: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 330px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  padding-left: 0.02em;
+  color: #f3ead0;
+  text-shadow: 0 6px 30px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+}
+
+.clockLong {
+  font-size: 240px;
+}
+
+.statsRow {
+  margin-top: -4px;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.statCol {
+  width: 400px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.statLabel {
+  line-height: 1;
+  letter-spacing: 0.22em;
+  color: #c9a44c;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 26px;
+}
+
+.statValue {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 90px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.statDivider {
+  width: 2px;
+  background: #c9a44c;
+  margin: 0 30px;
+}
+
+.statDividerSlim {
+  width: 2px;
+  background: #c9a44c;
+  margin: 0 16px;
+}
+
+/* ---- 状況バッジ ---- */
+
+.statusBadge {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 10px 40px;
+  border: 2px solid #c9a44c;
+  background: rgba(201, 164, 76, 0.08);
+}
+
+.statusLabel {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: 0.22em;
+  color: #c9a44c;
+}
+
+.statusValue {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 64px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: #f3ead0;
+  white-space: nowrap;
+}
+
+.inMoneyBadge {
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 48px 12px;
+  background: rgba(201, 164, 76, 0.12);
+}
+
+.inMoneyTitle {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 64px;
+  line-height: 1;
+  letter-spacing: 0.22em;
+  padding-left: 0.22em;
+  color: #c9a44c;
+}
+
+.inMoneySub {
+  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  color: #f3ead0;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* ---- NEXT BLINDS ---- */
+
+.nextBlock {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.nextHeader {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1;
+  letter-spacing: 0.22em;
+  color: #c9a44c;
+  padding-left: 0.22em;
+}
+
+.blindsRow {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.blindCol {
+  width: 270px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.blindValue {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 84px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}

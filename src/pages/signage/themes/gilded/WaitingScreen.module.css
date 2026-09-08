@@ -1,0 +1,326 @@
+/* デザインモック Tournament Waiting.dc.html の移植。
+   深緑の地 + 金枠 + 四隅の段状装飾。数値は 1920×1080 の論理px */
+
+.page {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #08110e;
+}
+
+.stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1080px;
+  background: radial-gradient(120% 100% at 50% 0%, #10201a 0%, #0a1410 55%, #060d0a 100%);
+  font-family: 'Big Shoulders Display', 'Noto Sans JP', sans-serif;
+  color: #f2e7d0;
+  overflow: hidden;
+}
+
+.noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 3px 3px;
+  mix-blend-mode: overlay;
+}
+
+.frame {
+  position: absolute;
+  inset: 22px;
+  border: 2px solid #b8862f;
+}
+
+/* ---- 四隅の段状装飾 ---- */
+
+.corner {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+}
+
+.tl {
+  top: 22px;
+  left: 22px;
+}
+
+.tr {
+  top: 22px;
+  right: 22px;
+  transform: scaleX(-1);
+}
+
+.bl {
+  bottom: 22px;
+  left: 22px;
+  transform: scaleY(-1);
+}
+
+.br {
+  bottom: 22px;
+  right: 22px;
+  transform: scale(-1, -1);
+}
+
+.cornerL1 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 148px;
+  height: 148px;
+  border-top: 5px solid #b8862f;
+  border-left: 5px solid #b8862f;
+}
+
+.cornerL2 {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 110px;
+  height: 110px;
+  border-top: 3px solid #8e6522;
+  border-left: 3px solid #8e6522;
+}
+
+.cornerL3 {
+  position: absolute;
+  top: 26px;
+  left: 26px;
+  width: 74px;
+  height: 74px;
+  border-top: 3px solid #6e4e1b;
+  border-left: 3px solid #6e4e1b;
+}
+
+.cornerL4 {
+  position: absolute;
+  top: 38px;
+  left: 38px;
+  width: 40px;
+  height: 40px;
+  border-top: 3px solid #563e16;
+  border-left: 3px solid #563e16;
+}
+
+/* ---- コンテンツ ---- */
+
+.content {
+  position: absolute;
+  inset: 22px;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  align-items: stretch;
+}
+
+.top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 34px 120px 0;
+}
+
+.club {
+  font-size: 70px;
+  font-weight: 600;
+  letter-spacing: 0.42em;
+  color: #c79a4e;
+  text-indent: 0.42em;
+  margin-bottom: 4px;
+}
+
+.title {
+  font-weight: 700;
+  font-size: 130px;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-indent: 0.06em;
+  text-align: center;
+  text-shadow: 0 6px 40px rgba(0, 0, 0, 0.55);
+  margin: 20px 0;
+}
+
+.titleMedium {
+  font-size: 112px;
+}
+
+.titleLong {
+  font-size: 84px;
+}
+
+/* ---- ステータスバッジ ---- */
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  margin-top: 22px;
+  width: 100%;
+  justify-content: center;
+}
+
+.statusLineL,
+.statusLineR {
+  height: 2px;
+  width: 150px;
+}
+
+.statusLineL {
+  background: linear-gradient(90deg, rgba(184, 134, 47, 0) 0%, #b8862f 100%);
+}
+
+.statusLineR {
+  background: linear-gradient(90deg, #b8862f 0%, rgba(184, 134, 47, 0) 100%);
+}
+
+.statusBadge {
+  border: 2px solid #c79a4e;
+  padding: 10px 34px 8px;
+  clip-path: polygon(
+    18px 0,
+    calc(100% - 18px) 0,
+    100% 50%,
+    calc(100% - 18px) 100%,
+    18px 100%,
+    0 50%
+  );
+  animation: statusPulse 3.4s ease-in-out infinite;
+}
+
+.statusText {
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: #e0b972;
+  text-indent: 0.2em;
+}
+
+@keyframes statusPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statusBadge {
+    animation: none;
+  }
+}
+
+/* ---- ENTRIES / 1ST PRIZE ---- */
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: 1fr 2px 1fr;
+  align-items: center;
+  gap: 60px;
+  margin-top: 44px;
+  width: 1180px;
+}
+
+.statCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.smallLabel {
+  font-size: 38px;
+  font-weight: 600;
+  letter-spacing: 0.26em;
+  color: #c79a4e;
+  text-indent: 0.26em;
+}
+
+.bigValue {
+  font-size: 148px;
+  font-weight: 700;
+  line-height: 0.96;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+.bigValueMedium {
+  font-size: 96px;
+}
+
+.bigValueLong {
+  font-size: 64px;
+}
+
+.vDividerTall {
+  height: 150px;
+  background: linear-gradient(
+    180deg,
+    rgba(184, 134, 47, 0) 0%,
+    #8e6522 50%,
+    rgba(184, 134, 47, 0) 100%
+  );
+}
+
+/* ---- STARTING BLINDS ---- */
+
+.bottom {
+  border-top: 2px solid #b8862f;
+  padding: 0 0 26px;
+  position: relative;
+}
+
+.blindsLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  transform: translateY(-21px);
+}
+
+.blindsLabel {
+  font-size: 38px;
+  font-weight: 600;
+  letter-spacing: 0.26em;
+  color: #c79a4e;
+  text-indent: 0.26em;
+  background: #0a1410;
+  padding: 0 26px;
+  white-space: nowrap;
+}
+
+.blindsGrid {
+  display: grid;
+  grid-template-columns: 1fr 2px 1fr 2px 1fr;
+  align-items: center;
+  margin: -6px auto 0;
+  width: 1320px;
+}
+
+.blindKey {
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  color: #c79a4e;
+  text-indent: 0.24em;
+}
+
+.blindValue {
+  font-size: 116px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.vDivider {
+  height: 120px;
+  background: linear-gradient(
+    180deg,
+    rgba(184, 134, 47, 0) 0%,
+    #7a5720 50%,
+    rgba(184, 134, 47, 0) 100%
+  );
+}
