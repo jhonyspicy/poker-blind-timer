@@ -40,7 +40,7 @@ export default function WaitingScreen({
         { label: 'SB', value: '-' },
         { label: 'BB', value: '-' },
       ]
-  const bgUrl = round2AssetUrl('images/waiting-bg.png')
+  const bgUrl = round2AssetUrl('images/waiting-bg.webp')
   return (
     <div className={styles.page}>
       <div

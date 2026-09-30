@@ -48,12 +48,12 @@ export const LATE_REG_LAST_LEVEL_SOUND = 'sounds/late-reg-last-level.ogg'
 /** 広告カルーセルの画像スライド(テーマディレクトリ起点の相対パス)。表示順もこの順 */
 export const ROUND2_AD_IMAGES = {
   drinks: [
-    'images/ads/01-highball-beer.png',
-    'images/ads/02-gin-soda.png',
-    'images/ads/03-soft-drink.png',
-    'images/ads/04-cast-drink.png',
+    'images/ads/01-highball-beer.webp',
+    'images/ads/02-gin-soda.webp',
+    'images/ads/03-soft-drink.webp',
+    'images/ads/04-cast-drink.webp',
   ],
-  gtoWizard: 'images/ads/06-gto-wizard.png',
+  gtoWizard: 'images/ads/06-gto-wizard.webp',
 } as const
 
 /**
@@ -62,14 +62,14 @@ export const ROUND2_AD_IMAGES = {
  *
  * - videos/<名前>.webm + .ogg: 全画面演出(EFFECT_VIDEOS。映像は透過、音声は別ファイル)
  * - sounds/*.ogg: 共有層の効果音(SOUND_EVENTS)と、テーマ独自の 1 分前予告・まもなく再開の案内・レジクロ前最終レベルの告知
- * - images/waiting-bg.png / images/champion.png: 待機 / 優勝画面の背景
+ * - images/waiting-bg.webp / images/champion.webp: 待機 / 優勝画面の背景
  * - videos/timer-background.webm: タイマー画面のループ背景(音声なし)
  * - images/ads/*: ブレイク画面の広告カルーセル(prize-bg はプライズ一覧スライドの背景)
- * - images/resume-soon.png: ブレイク終盤の「まもなく再開」
+ * - images/resume-soon.webp: ブレイク終盤の「まもなく再開」
  */
 export const ROUND2_THEME_ASSETS: readonly string[] = [
-  'images/waiting-bg.png',
-  'images/champion.png',
+  'images/waiting-bg.webp',
+  'images/champion.webp',
   'videos/timer-background.webm',
   ...Object.values(EFFECT_VIDEOS).flatMap(({ name }) => [
     `videos/${name}.webm`,
@@ -81,6 +81,6 @@ export const ROUND2_THEME_ASSETS: readonly string[] = [
   LATE_REG_LAST_LEVEL_SOUND,
   ...ROUND2_AD_IMAGES.drinks,
   ROUND2_AD_IMAGES.gtoWizard,
-  'images/ads/prize-bg.png',
-  'images/resume-soon.png',
+  'images/ads/prize-bg.webp',
+  'images/resume-soon.webp',
 ]

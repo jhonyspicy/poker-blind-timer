@@ -51,7 +51,7 @@ function PrizeSlide({
   prizes: Prize[]
   listRef: RefObject<HTMLDivElement | null>
 }) {
-  const bgUrl = round2AssetUrl('images/ads/prize-bg.png')
+  const bgUrl = round2AssetUrl('images/ads/prize-bg.webp')
   return (
     <div
       className={styles.prizeSlide}
@@ -116,7 +116,7 @@ export default function AdCarousel({ prizes, soon }: { prizes: Prize[]; soon: bo
   const [slideIndex, setSlideIndex] = useState(0)
   const active = slides.length > 0 ? slideIndex % slides.length : 0
   const listRef = useRef<HTMLDivElement | null>(null)
-  const soonUrl = round2AssetUrl('images/resume-soon.png')
+  const soonUrl = round2AssetUrl('images/resume-soon.webp')
 
   // スクロール開始位置(下端)をフェードインの最初のフレームから適用するため、描画前に実行する
   useLayoutEffect(() => {

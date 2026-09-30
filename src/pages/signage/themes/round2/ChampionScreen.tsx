@@ -10,7 +10,7 @@ const TITLE_MAX_WIDTH = 1690
 
 /**
  * Round2 の優勝画面(デザインモック Champion Screen の移植)。
- * 「CHAMPION」を描き込んだ背景画像(images/champion.png)の上に、
+ * 「CHAMPION」を描き込んだ背景画像(images/champion.webp)の上に、
  * 店名バッジとトーナメント名を重ねる。背景が無ければ濃紺の地
  */
 export default function ChampionScreen({
@@ -22,7 +22,7 @@ export default function ChampionScreen({
 }) {
   const scale = useStageScale()
   const titleRef = useFitText<HTMLDivElement>(config.title, TITLE_MAX_WIDTH, 'shrink')
-  const bgUrl = round2AssetUrl('images/champion.png')
+  const bgUrl = round2AssetUrl('images/champion.webp')
   return (
     <div className={styles.page}>
       <div
