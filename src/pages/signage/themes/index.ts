@@ -6,6 +6,8 @@ import { DEFAULT_THEME_ASSETS } from './default/assets'
 import DefaultRoot from './default/Root'
 import { GILDED_THEME_ASSETS } from './gilded/assets'
 import GildedRoot from './gilded/Root'
+import { ROUND2_THEME_ASSETS } from './round2/assets'
+import Round2Root from './round2/Root'
 
 /**
  * サイネージのテーマ = Root コンポーネント 1 個 + 素材ディレクトリ(public/themes/<id>/)+
@@ -82,6 +84,11 @@ const SIGNAGE_THEMES: Record<ThemeId, SignageTheme> = {
     Root: GildedRoot,
     // 演出は CSS のみで動画素材を持たない。音声素材のみ先読みする
     assets: GILDED_THEME_ASSETS,
+  },
+  round2: {
+    Root: Round2Root,
+    // 演出動画・効果音・背景画像/動画・ブレイクの広告画像を先読みする
+    assets: ROUND2_THEME_ASSETS,
   },
 }
 

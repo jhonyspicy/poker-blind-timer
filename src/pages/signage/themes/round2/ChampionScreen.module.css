@@ -1,0 +1,55 @@
+/* デザインモック Champion Screen.dc.html の移植(cqw / cqh を 1920×1080 の論理px に換算) */
+
+.page {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background-color: #061a4a;
+  background-position: center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  color: #fff;
+}
+
+.storeRow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 43px;
+  display: flex;
+  justify-content: center;
+}
+
+.titleRow {
+  position: absolute;
+  left: 115px;
+  right: 115px;
+  top: 264px;
+  height: 91px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title {
+  font-family: 'Barlow', 'Noto Sans JP', sans-serif;
+  font-weight: 900;
+  font-size: 83px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 15px rgba(0, 20, 90, 0.9),
+    0 5px 10px rgba(0, 0, 0, 0.7);
+}

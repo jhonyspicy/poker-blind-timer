@@ -1,0 +1,444 @@
+/* デザインモック Tournament Clock.dc.html の移植。数値は 1920×1080 の論理px */
+
+.page {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+  font-family: 'Barlow', 'Noto Sans JP', sans-serif;
+  color: #fff;
+}
+
+.stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: #020a24;
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shade {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(0, 10, 30, 0.15), rgba(0, 5, 20, 0.55));
+}
+
+/* ---- ヘッダー ---- */
+
+.header {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.title {
+  font-size: 66px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow:
+    0 0 4px #001a3d,
+    0 0 4px #001a3d,
+    -3px -3px 0 #04224d,
+    3px -3px 0 #04224d,
+    -3px 3px 0 #04224d,
+    3px 3px 0 #04224d,
+    0 6px 20px rgba(0, 0, 0, 0.6);
+}
+
+/* ---- パネル共通 ---- */
+
+.panel {
+  position: absolute;
+  box-sizing: border-box;
+  background: rgba(6, 25, 54, 0.88);
+  border: 3px solid #3fe8ff;
+  border-radius: 6px;
+  box-shadow:
+    0 0 18px rgba(63, 232, 255, 0.45),
+    inset 0 0 0 8px rgba(6, 25, 54, 0.9),
+    inset 0 0 0 9px rgba(63, 232, 255, 0.55);
+}
+
+.corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #3fe8ff;
+}
+
+.tl {
+  left: -2px;
+  top: -2px;
+}
+
+.tr {
+  right: -2px;
+  top: -2px;
+}
+
+.bl {
+  left: -2px;
+  bottom: -2px;
+}
+
+.br {
+  right: -2px;
+  bottom: -2px;
+}
+
+.panelTitle {
+  font-size: 44px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 1px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid #3fe8ff;
+}
+
+/* ---- 左: PRIZE LIST ---- */
+
+.prizePanel {
+  left: 36px;
+  top: 270px;
+  width: 440px;
+  height: 780px;
+  padding: 22px 36px;
+  display: flex;
+  flex-direction: column;
+}
+
+.prizeList {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 14px;
+  mask-image: linear-gradient(180deg, #000 0%, #000 62%, transparent 100%);
+}
+
+.prizeRow {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid rgba(63, 232, 255, 0.45);
+}
+
+.prizeRank {
+  flex: none;
+  width: 90px;
+  font-size: 36px;
+  font-weight: 800;
+  color: #3fe8ff;
+}
+
+.prizeValue {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.prizeNumber {
+  font-size: 44px;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.prizeAmount {
+  min-width: 0;
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+}
+
+.prizeAmountMedium {
+  font-size: 32px;
+}
+
+.prizeAmountLong {
+  font-size: 24px;
+}
+
+.prizeUnit {
+  flex: none;
+  font-size: 24px;
+  font-weight: 700;
+  color: #bfe9ff;
+}
+
+/* ---- 中央: カウントダウン ---- */
+
+.clockPanel {
+  left: 500px;
+  top: 270px;
+  width: 920px;
+  height: 600px;
+  padding: 22px 50px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition:
+    box-shadow 0.4s ease,
+    filter 0.4s ease;
+}
+
+/* レベルアップ時の発光ブースト */
+.clockPanelGlow {
+  filter: brightness(1.25);
+  box-shadow:
+    0 0 60px rgba(63, 232, 255, 0.9),
+    inset 0 0 0 8px rgba(6, 25, 54, 0.9),
+    inset 0 0 0 9px rgba(63, 232, 255, 0.9);
+}
+
+.levelLabel {
+  font-size: 38px;
+  font-weight: 800;
+  color: #bfe9ff;
+  letter-spacing: 2px;
+}
+
+.clock {
+  margin-top: 8px;
+  height: 246px;
+  display: flex;
+  align-items: center;
+  font-size: 280px;
+  font-weight: 700;
+  line-height: 0.88;
+  letter-spacing: -6px;
+  white-space: nowrap;
+  text-shadow: 0 0 30px rgba(63, 232, 255, 0.35);
+  color: #fff;
+}
+
+/* 1 時間以上(h:mm:ss)は桁が増えるため縮める */
+.clockLong {
+  font-size: 210px;
+}
+
+.clockWarning {
+  color: #ff5a6a;
+}
+
+.clockPaused {
+  animation: blink 1.6s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.blindsHeadingRow {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  width: 100%;
+  margin-top: 14px;
+}
+
+.rule {
+  flex: 1;
+  height: 3px;
+  background: #3fe8ff;
+}
+
+.blindsHeading {
+  font-size: 30px;
+  font-weight: 800;
+  color: #3fe8ff;
+  letter-spacing: 2px;
+}
+
+.blinds {
+  margin-top: 10px;
+  font-size: 104px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.ante {
+  margin-top: 8px;
+  font-size: 52px;
+  font-weight: 800;
+  color: #3fe8ff;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+/* ---- 中央下: NEXT BLINDS / NEXT BREAK ---- */
+
+.nextPanel {
+  left: 500px;
+  top: 890px;
+  width: 920px;
+  height: 160px;
+  padding: 16px 40px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 3px minmax(0, 1fr);
+  align-items: center;
+}
+
+.nextCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+}
+
+.nextDivider {
+  height: 100%;
+  background: #3fe8ff;
+}
+
+.nextLabel {
+  font-size: 26px;
+  font-weight: 800;
+  color: #3fe8ff;
+  letter-spacing: 1px;
+}
+
+.nextValue {
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.nextNote {
+  font-size: 24px;
+  font-weight: 800;
+  color: #3fe8ff;
+  white-space: nowrap;
+}
+
+/* ---- 右: PLAYERS ---- */
+
+.playersPanel {
+  left: 1444px;
+  top: 270px;
+  width: 440px;
+  height: 780px;
+  padding: 22px 36px;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+}
+
+.playersRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 0 10px;
+  border-bottom: 3px solid #3fe8ff;
+  white-space: nowrap;
+}
+
+.playersValue {
+  font-size: 150px;
+  font-weight: 700;
+  line-height: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+.playersTotal {
+  padding-bottom: 6px;
+  font-size: 62px;
+  font-weight: 700;
+  line-height: 1;
+  color: #bfe9ff;
+}
+
+.statList {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+
+.statCell {
+  padding: 6px 0 0;
+}
+
+.statCellDivided {
+  padding-bottom: 10px;
+  border-bottom: 3px solid #3fe8ff;
+}
+
+.statLabel {
+  font-size: 34px;
+  font-weight: 800;
+  color: #3fe8ff;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.statValue {
+  font-size: 84px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.lateRegStatus {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.lateRegOpen {
+  color: #3fe8ff;
+}
+
+.lateRegClosed {
+  color: #ff5a6a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clockPaused {
+    animation: none;
+    opacity: 0.6;
+  }
+}

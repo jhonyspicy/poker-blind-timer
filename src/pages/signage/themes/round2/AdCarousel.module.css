@@ -1,0 +1,210 @@
+/* デザインモック Break Screen.dc.html の右側(広告エリア 864×1080)の移植 */
+
+.carousel {
+  position: relative;
+  width: 864px;
+  height: 1080px;
+  overflow: hidden;
+  background: #f6f1e7;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  transition: opacity 900ms ease;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ---- プライズ一覧スライド ---- */
+
+.prizeSlide {
+  position: absolute;
+  inset: 0;
+  background-color: #06246e;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  font-family: 'Barlow', 'Noto Sans JP', sans-serif;
+  color: #fff;
+}
+
+.prizeHeading {
+  position: absolute;
+  left: 0;
+  top: 58px;
+  width: 720px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.prizeHeadingJa {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #38e6ff;
+}
+
+.prizeHeadingEn {
+  margin-top: 6px;
+  font-size: 84px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-shadow: 0 4px 18px rgba(0, 20, 80, 0.6);
+}
+
+.prizeHeadingRule {
+  width: 80px;
+  height: 3px;
+  margin-top: 22px;
+  border-radius: 2px;
+  background: #38e6ff;
+}
+
+.prizeViewport {
+  position: absolute;
+  left: 36px;
+  right: 36px;
+  top: 246px;
+  bottom: 36px;
+  overflow: hidden;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 24px,
+    #000 calc(100% - 40px),
+    transparent 100%
+  );
+}
+
+.prizeList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 0 40px;
+  will-change: transform;
+}
+
+.prizeRow {
+  display: grid;
+  grid-template-columns: 200px 2px minmax(0, 1fr);
+  align-items: center;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 2px solid rgba(80, 150, 255, 0.28);
+  background: rgba(10, 40, 110, 0.55);
+}
+
+.first {
+  min-height: 270px;
+  border-color: #4fd3ff;
+  background: linear-gradient(135deg, #1a8cff 0%, #0a5fd6 55%, #0647b0 100%);
+  box-shadow: 0 0 36px rgba(40, 160, 255, 0.45);
+}
+
+.top {
+  min-height: 200px;
+}
+
+.rest {
+  min-height: 112px;
+}
+
+.rankCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 18px 0;
+}
+
+.rank {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  line-height: 1;
+}
+
+.rankNumber {
+  font-size: 64px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.top .rankNumber {
+  font-size: 76px;
+}
+
+.first .rankNumber {
+  font-size: 92px;
+}
+
+.rankSuffix {
+  font-size: 34px;
+  font-weight: 700;
+}
+
+.rankDivider {
+  width: 2px;
+  height: calc(100% - 40px);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 22px 20px 22px 36px;
+  min-width: 0;
+  /* 単一行(例: 8,000PT)の既定サイズ */
+  --main-size: 72px;
+  --unit-size: 44px;
+}
+
+.linesMulti {
+  --main-size: 42px;
+  --unit-size: 34px;
+}
+
+.first .linesMulti {
+  --main-size: 48px;
+  --unit-size: 40px;
+}
+
+.line {
+  display: flex;
+  align-items: baseline;
+  line-height: 1.12;
+  min-width: 0;
+}
+
+.lineOr {
+  flex: none;
+  margin-right: 14px;
+  font-size: 40px;
+  font-weight: 700;
+}
+
+.lineMain {
+  min-width: 0;
+  font-size: var(--main-size);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.lineUnit {
+  flex: none;
+  margin-left: 8px;
+  font-size: var(--unit-size);
+  font-weight: 700;
+}

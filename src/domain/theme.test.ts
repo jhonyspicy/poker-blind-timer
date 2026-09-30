@@ -12,6 +12,10 @@ describe('resolveThemeId', () => {
     expect(resolveThemeId('gilded')).toBe('gilded')
   })
 
+  it('Round2 テーマを提供している', () => {
+    expect(resolveThemeId('round2')).toBe('round2')
+  })
+
   it('未指定(旧データ)は標準テーマに解決する', () => {
     expect(resolveThemeId(undefined)).toBe(DEFAULT_THEME_ID)
   })

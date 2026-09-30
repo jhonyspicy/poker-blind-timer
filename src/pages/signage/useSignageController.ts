@@ -31,7 +31,7 @@ import { buildSnapshot } from '../../realtime/snapshot'
 import { getConfig, loadRoom, loadSession, saveSession } from '../../storage/db'
 import type { EffectEvent } from './events'
 import { preloadSignageAssets } from './preload'
-import { playSound } from './sounds'
+import { playSound, type SoundEvent } from './sounds'
 import { DEFAULT_EFFECT_TIMEOUT_MS, resolveTheme, type SignagePhase } from './themes'
 
 export interface SignageData {
@@ -57,6 +57,14 @@ export interface SignageData {
 const CHAMPION_DISCONNECT_DELAY_MS = 5_000
 
 export type SignageControllerState = 'loading' | 'no-session' | SignageData
+
+/**
+ * テーマが効果音の素材を宣言しているか。別の効果音の代わりに鳴らす音声(break-end など)は、
+ * 素材を持たないテーマで無音にならないよう、宣言がある場合だけ差し替える
+ */
+function themeHasSound(theme: string | undefined, event: SoundEvent): boolean {
+  return resolveTheme(theme).assets?.includes(`sounds/${event}.ogg`) ?? false
+}
 
 /**
  * サイネージの状態管理。セッションの読み込み・タイマー進行(自動遷移)・
@@ -223,7 +231,7 @@ export function useSignageController(): SignageControllerState {
       const nowMs = Date.now()
       let next: SessionState | null = null
       // 記録コマンドの効果音。優勝確定の判定(applyMilestones)後に鳴らし分けるため保留する
-      let historySound: 'entry' | 'bust' | null = null
+      let historySound: 'entry' | 'add-on' | 'bust' | null = null
       switch (command.type) {
         case 'START':
           // タイマーはここでは開始しない。開始演出が合図を返した時点で起動する
@@ -266,9 +274,10 @@ export function useSignageController(): SignageControllerState {
             ...(command.chip !== undefined ? { chip: command.chip } : {}),
           })
           next = { ...current, histories: result.histories, nextHistoryId: result.nextHistoryId }
-          // エントリー(リバイ / 再エントリー含む)とバストの記録に効果音を鳴らす。
+          // エントリー(リバイ / 再エントリー含む)・アドオン・バストの記録に効果音を鳴らす。
           // 素材を置いていないテーマでは無音でスキップされる
           if (command.command === 'entry') historySound = 'entry'
+          else if (command.command === 'addon') historySound = 'add-on'
           else if (command.command === 'bust') historySound = 'bust'
           break
         }
@@ -418,8 +427,15 @@ export function useSignageController(): SignageControllerState {
         index > prevLevelIndexRef.current
       ) {
         const item = cfg.structure[index]
-        if (item?.kind === 'blind') playSound(theme, 'level-up')
-        else if (item?.kind === 'break') playSound(theme, 'break-start')
+        const leftBreak = cfg.structure[prevLevelIndexRef.current]?.kind === 'break'
+        if (item?.kind === 'blind') {
+          // ブレイク明けのレベル開始は、テーマがブレイク終了の音声を宣言していれば
+          // レベルアップ音の代わりにそちらを鳴らす(持たないテーマは従来どおりレベルアップ音)
+          playSound(
+            theme,
+            leftBreak && themeHasSound(baseCfg.theme, 'break-end') ? 'break-end' : 'level-up',
+          )
+        } else if (item?.kind === 'break') playSound(theme, 'break-start')
       }
       prevLevelIndexRef.current = index
       // レベルアップ 10 秒前の予告音(次の項目がブラインドのときだけ)

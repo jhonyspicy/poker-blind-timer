@@ -9,9 +9,11 @@ export type SoundEvent =
   | 'level-up-warning'
   | 'level-up'
   | 'break-start'
+  | 'break-end'
   | 'pause'
   | 'resume'
   | 'entry'
+  | 'add-on'
   | 'bust'
   | 'champion'
 
