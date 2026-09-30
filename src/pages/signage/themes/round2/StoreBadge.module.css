@@ -1,0 +1,183 @@
+/* デザインモック(Tournament Waiting / Champion Screen / Tournament Clock)の店名バッジの移植。
+   数値は 1920×1080 の論理px */
+
+.badge {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.corner {
+  position: absolute;
+  background: #fff;
+}
+
+.edge {
+  position: absolute;
+  background: #fff;
+}
+
+.text {
+  position: relative;
+  line-height: 1;
+  white-space: nowrap;
+  transform-origin: center;
+}
+
+/* ---- large: 待機 / 優勝画面(固定 552×190) ---- */
+
+.large {
+  width: 552px;
+  height: 190px;
+  background: #0b8cf0;
+  border-radius: 10px;
+  box-shadow:
+    inset 0 0 0 2.7px #0a7ad8,
+    inset 0 2.3px 0 2.7px rgba(120, 200, 255, 0.55),
+    0 4.8px 0 #0664bb,
+    0 13px 31px rgba(0, 0, 0, 0.45);
+  padding-bottom: 2.3px;
+}
+
+.large .corner {
+  width: 17px;
+  height: 17px;
+  border-radius: 2px;
+}
+
+.large .tl,
+.large .tr {
+  top: 8.6px;
+}
+
+.large .bl,
+.large .br {
+  bottom: 8.6px;
+}
+
+.large .tl,
+.large .bl {
+  left: 8.6px;
+}
+
+.large .tr,
+.large .br {
+  right: 8.6px;
+}
+
+.large .top,
+.large .bottom {
+  left: 30.7px;
+  right: 30.7px;
+  height: 5px;
+}
+
+.large .top {
+  top: 15.6px;
+}
+
+.large .bottom {
+  bottom: 15.6px;
+}
+
+.large .left,
+.large .right {
+  top: 29.6px;
+  bottom: 29.6px;
+  width: 5px;
+}
+
+.large .left {
+  left: 14.4px;
+}
+
+.large .right {
+  right: 14.4px;
+}
+
+.large .text {
+  top: 4.4px;
+  font-family: 'Archivo Black', 'Arial Black', 'Noto Sans JP', sans-serif;
+  font-size: 154.6px;
+  letter-spacing: -0.02em;
+  text-shadow: 0 1.3px 2.7px rgba(0, 50, 120, 0.35);
+}
+
+/* ---- compact: タイマー画面ヘッダー ---- */
+
+.compact {
+  padding: 20px 30px 28px;
+  background: linear-gradient(180deg, #1a96ff 0%, #0a7cf0 100%);
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 2px #0a5fc4,
+    0 4px 14px rgba(0, 0, 0, 0.5),
+    inset 0 2px 0 rgba(255, 255, 255, 0.35);
+}
+
+.compact .corner {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.compact .tl,
+.compact .tr {
+  top: 6px;
+}
+
+.compact .bl,
+.compact .br {
+  bottom: 6px;
+}
+
+.compact .tl,
+.compact .bl {
+  left: 6px;
+}
+
+.compact .tr,
+.compact .br {
+  right: 6px;
+}
+
+.compact .top,
+.compact .bottom {
+  left: 25px;
+  right: 25px;
+  height: 3px;
+}
+
+.compact .top {
+  top: 11px;
+}
+
+.compact .bottom {
+  bottom: 11px;
+}
+
+.compact .left,
+.compact .right {
+  top: 25px;
+  bottom: 25px;
+  width: 3px;
+}
+
+.compact .left {
+  left: 11px;
+}
+
+.compact .right {
+  right: 11px;
+}
+
+.compact .text {
+  font-family: 'Barlow', 'Noto Sans JP', sans-serif;
+  font-size: 84px;
+  font-weight: 900;
+  letter-spacing: -2px;
+  text-shadow: 0 2px 2px rgba(0, 40, 110, 0.45);
+}

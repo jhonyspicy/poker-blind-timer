@@ -1,0 +1,196 @@
+/* デザインモック Tournament Waiting.dc.html の移植。数値は 1920×1080 の論理px */
+
+.page {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background-color: #020a24;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  font-family: 'Barlow', 'Noto Sans JP', sans-serif;
+  color: #fff;
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 40% 60% at 50% 50%,
+    rgba(2, 10, 36, 0.45),
+    rgba(2, 10, 36, 0) 70%
+  );
+}
+
+.storeRow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 56px;
+  display: flex;
+  justify-content: center;
+}
+
+.titleRow {
+  position: absolute;
+  left: 410px;
+  right: 410px;
+  top: 280px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title {
+  font-weight: 800;
+  font-size: 112px;
+  line-height: 1;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  text-shadow:
+    0 4px 0 rgba(0, 20, 60, 0.6),
+    0 0 30px rgba(0, 30, 90, 0.9);
+}
+
+.statusRow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 470px;
+  display: flex;
+  justify-content: center;
+}
+
+.status {
+  width: 590px;
+  border-top: 2px solid rgba(63, 216, 255, 0.6);
+  border-bottom: 2px solid rgba(63, 216, 255, 0.6);
+  padding: 22px 0 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.statusJa {
+  font-family: 'Zen Old Mincho', serif;
+  font-weight: 500;
+  font-size: 64px;
+  line-height: 1.1;
+  letter-spacing: 14px;
+  padding-left: 14px;
+  text-shadow: 0 0 18px rgba(0, 20, 60, 0.9);
+}
+
+.statusEn {
+  font-family: 'Barlow Semi Condensed', sans-serif;
+  font-weight: 600;
+  font-size: 26px;
+  letter-spacing: 9px;
+  padding-left: 9px;
+  color: #3fd8ff;
+}
+
+.panel {
+  position: absolute;
+  left: 327px;
+  top: 720px;
+  width: 1266px;
+  height: 254px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 860fr) minmax(0, 406fr);
+  background: rgba(3, 18, 52, 0.82);
+  border: 2px solid #3fd8ff;
+  box-shadow:
+    0 0 22px rgba(63, 216, 255, 0.35),
+    inset 0 0 30px rgba(63, 216, 255, 0.08);
+}
+
+.panelCol {
+  display: flex;
+  flex-direction: column;
+  padding: 0 12px;
+  min-width: 0;
+}
+
+.panelColDivided {
+  border-left: 2px solid #3fd8ff;
+}
+
+.panelHeader {
+  height: 62px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 2px solid rgba(63, 216, 255, 0.55);
+  font-family: 'Barlow Semi Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 34px;
+  letter-spacing: 4px;
+  color: #3fd8ff;
+}
+
+.blindsGrid {
+  flex: 1;
+  display: grid;
+  align-items: center;
+  padding: 22px 0;
+}
+
+.blindCell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.blindCellDivided {
+  border-left: 2px solid rgba(63, 216, 255, 0.55);
+}
+
+.blindLabel {
+  font-family: 'Barlow Semi Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 32px;
+  letter-spacing: 2px;
+  color: #3fd8ff;
+}
+
+.blindValue {
+  font-weight: 800;
+  font-size: 92px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.blindValueLong {
+  font-size: 72px;
+}
+
+.entries {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 128px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}

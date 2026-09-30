@@ -3,7 +3,7 @@
  * 先読みはこの宣言だけを見るため、実際に配置している素材のみを列挙する。
  * 動画素材は持たない(演出は CSS 実装)。
  *
- * - tournament-start.ogg: 開始演出の表示開始と同時に鳴らすテーマ独自アナウンス
+ * - tournament-start.ogg / in-the-money.ogg: 演出の表示開始と同時に鳴らすテーマ独自アナウンス
  * - level-up-warning-announce.ogg: レベル終了 1 分前の予告アナウンス(テーマ独自タイミング)。
  *   共有層の 10 秒前予告音(sounds/level-up-warning.ogg)とファイル名を分け、素材を
  *   置かないことで 10 秒前側を無効化している
@@ -13,6 +13,7 @@
  */
 export const GILDED_THEME_ASSETS: readonly string[] = [
   'sounds/tournament-start.ogg',
+  'sounds/in-the-money.ogg',
   'sounds/level-up-warning-announce.ogg',
   'sounds/level-up.ogg',
   'sounds/break-start.ogg',

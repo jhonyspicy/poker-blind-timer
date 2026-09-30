@@ -10,6 +10,7 @@ export const DEFAULT_THEME_ID = 'default'
 export const THEMES = [
   { id: DEFAULT_THEME_ID, label: 'スタンダード' },
   { id: 'gilded', label: 'GILDED' },
+  { id: 'round2', label: 'Round2' },
 ] as const
 
 export type ThemeId = (typeof THEMES)[number]['id']

@@ -1,0 +1,209 @@
+/* デザインモック Break Screen.dc.html の移植(左の情報エリア)。数値は 1920×1080 の論理px */
+
+.page {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1080px;
+  display: flex;
+  overflow: hidden;
+  background: #061530;
+  font-family: 'Barlow', 'Noto Sans JP', sans-serif;
+  color: #fff;
+}
+
+.infoColumn {
+  width: 1048px;
+  height: 1080px;
+  box-sizing: border-box;
+  padding: 64px 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: radial-gradient(120% 90% at 100% 0%, #0b3d82 0%, #082656 38%, #061530 75%);
+}
+
+.divider {
+  flex: none;
+  width: 8px;
+  height: 1080px;
+  background: #1a8cff;
+}
+
+/* ---- カウントダウン ---- */
+
+.breakLabel {
+  font-size: 150px;
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+}
+
+.clock {
+  margin-top: 40px;
+  margin-left: -8px;
+  font-size: 318px;
+  font-weight: 700;
+  line-height: 0.86;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  color: #fff;
+}
+
+/* 1 時間以上(h:mm:ss)は桁が増えるため縮める */
+.clockLong {
+  font-size: 232px;
+}
+
+.clockEnded {
+  color: #2b95ff;
+}
+
+.clockPaused {
+  animation: blink 1.6s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.progressTrack {
+  height: 8px;
+  margin-top: 36px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(26, 140, 255, 0.22);
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: 4px;
+  background: #1a8cff;
+  transition: width 1s linear;
+}
+
+/* ---- PLAYERS / AVERAGE STACK ---- */
+
+.statsRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.statCol {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.statColFirst {
+  padding-right: 48px;
+  border-right: 2px solid rgba(255, 255, 255, 0.18);
+}
+
+.statColSecond {
+  padding-left: 56px;
+}
+
+.statLabel {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  color: #a9bfdf;
+  white-space: nowrap;
+}
+
+.playersRow {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  white-space: nowrap;
+}
+
+.statValue {
+  font-size: 124px;
+  font-weight: 700;
+  line-height: 0.95;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.playersTotal {
+  font-size: 48px;
+  font-weight: 700;
+  color: #a9bfdf;
+}
+
+/* ---- NEXT BLINDS ---- */
+
+.nextBox {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  background: rgba(4, 14, 34, 0.45);
+}
+
+.nextHeader {
+  padding: 18px 28px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  color: #a9bfdf;
+}
+
+.nextGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 22px 0 26px;
+}
+
+.nextCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.nextColMiddle {
+  border-left: 2px solid rgba(255, 255, 255, 0.14);
+  border-right: 2px solid rgba(255, 255, 255, 0.14);
+}
+
+.nextLabel {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #2b95ff;
+}
+
+.nextValue {
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clockPaused {
+    animation: none;
+    opacity: 0.6;
+  }
+}
